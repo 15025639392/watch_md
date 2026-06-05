@@ -1,0 +1,840 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WatchOS 徒步 App 产品原型 v0.1</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0d10;
+      --panel: #161a1f;
+      --watch: #070809;
+      --screen: #101418;
+      --text: #f3f5f6;
+      --muted: #9aa4ad;
+      --line: #2b333a;
+      --route: #46d36b;
+      --track: #49a7ff;
+      --warn: #ff5a4f;
+      --amber: #ffbd45;
+      --cyan: #5be7d6;
+      --button: #242b31;
+      --danger: #b72d36;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(70, 211, 107, 0.08), transparent 26rem),
+        radial-gradient(circle at 80% 10%, rgba(73, 167, 255, 0.08), transparent 24rem),
+        var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+      letter-spacing: 0;
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 34px 0 48px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1.25fr 0.75fr;
+      gap: 24px;
+      align-items: end;
+      margin-bottom: 28px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(30px, 4vw, 54px);
+      line-height: 1.04;
+      font-weight: 760;
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      font-size: 18px;
+      font-weight: 680;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    .meta {
+      border-left: 1px solid var(--line);
+      padding-left: 20px;
+    }
+
+    .meta b {
+      display: block;
+      color: var(--text);
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(220px, 1fr));
+      gap: 22px;
+    }
+
+    .prototype {
+      display: grid;
+      justify-items: center;
+      gap: 12px;
+    }
+
+    .caption {
+      width: 100%;
+      min-height: 78px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(22, 26, 31, 0.75);
+    }
+
+    .caption strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    .caption span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .watch {
+      position: relative;
+      width: 218px;
+      height: 262px;
+      padding: 15px;
+      border-radius: 52px;
+      background: linear-gradient(145deg, #252a2d, #050607 55%, #262b2e);
+      box-shadow: 0 22px 50px rgba(0, 0, 0, 0.45), inset 0 0 0 2px rgba(255, 255, 255, 0.05);
+    }
+
+    .watch::before,
+    .watch::after {
+      content: "";
+      position: absolute;
+      right: -7px;
+      background: #34383b;
+      box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.14);
+    }
+
+    .watch::before {
+      top: 78px;
+      width: 8px;
+      height: 44px;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .watch::after {
+      top: 132px;
+      width: 6px;
+      height: 58px;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .screen {
+      position: relative;
+      width: 188px;
+      height: 232px;
+      overflow: hidden;
+      border-radius: 40px;
+      background: var(--screen);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+
+    .map {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(28deg, transparent 45%, rgba(255, 255, 255, 0.05) 46%, transparent 47%),
+        linear-gradient(152deg, transparent 42%, rgba(255, 255, 255, 0.045) 43%, transparent 44%),
+        linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255,255,255,0.025) 1px, transparent 1px),
+        #142027;
+      background-size: auto, auto, 38px 38px, 38px 38px, auto;
+    }
+
+    .contour {
+      position: absolute;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 50%;
+      transform: rotate(-16deg);
+    }
+
+    .c1 { width: 150px; height: 78px; left: -24px; top: 56px; }
+    .c2 { width: 190px; height: 92px; left: 22px; top: 98px; }
+    .c3 { width: 126px; height: 66px; left: 86px; top: 24px; }
+
+    svg.route {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .route-plan {
+      fill: none;
+      stroke: var(--route);
+      stroke-width: 7;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      filter: drop-shadow(0 0 5px rgba(70, 211, 107, 0.35));
+    }
+
+    .route-next {
+      fill: none;
+      stroke: #d7ff7c;
+      stroke-width: 8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      filter: drop-shadow(0 0 6px rgba(215, 255, 124, 0.55));
+    }
+
+    .route-walked {
+      fill: none;
+      stroke: var(--track);
+      stroke-width: 4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 0.72;
+    }
+
+    .off-line {
+      fill: none;
+      stroke: var(--warn);
+      stroke-width: 4;
+      stroke-dasharray: 6 6;
+      stroke-linecap: round;
+    }
+
+    .pin {
+      position: absolute;
+      display: grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      color: #07100a;
+      font-size: 10px;
+      font-weight: 800;
+      background: var(--route);
+      box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.35);
+    }
+
+    .start { left: 25px; top: 162px; }
+    .end { right: 25px; top: 45px; background: var(--amber); }
+    .turn { left: 106px; top: 78px; background: #d7ff7c; }
+
+    .location {
+      position: absolute;
+      left: 72px;
+      top: 124px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: rgba(73, 167, 255, 0.15);
+      box-shadow: 0 0 0 16px rgba(73, 167, 255, 0.08);
+    }
+
+    .location::before {
+      content: "";
+      position: absolute;
+      left: 10px;
+      top: -8px;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-bottom: 18px solid #ffffff;
+      transform: rotate(28deg);
+      transform-origin: 50% 100%;
+      filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
+    }
+
+    .location::after {
+      content: "";
+      position: absolute;
+      inset: 8px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 0 4px var(--track);
+    }
+
+    .off .location {
+      left: 118px;
+      top: 132px;
+      box-shadow: 0 0 0 16px rgba(255, 90, 79, 0.12);
+    }
+
+    .top-pill,
+    .bottom-pill {
+      position: absolute;
+      z-index: 5;
+      left: 50%;
+      max-width: 164px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: rgba(5, 7, 9, 0.78);
+      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(14px);
+      color: var(--text);
+      text-align: center;
+      white-space: nowrap;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.07);
+    }
+
+    .top-pill {
+      top: 11px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    .bottom-pill {
+      bottom: 12px;
+      padding: 8px 12px;
+      font-size: 12px;
+      line-height: 1.15;
+    }
+
+    .warning {
+      background: rgba(114, 21, 21, 0.88);
+      color: #fff;
+    }
+
+    .amber {
+      background: rgba(117, 75, 18, 0.88);
+      color: #fff1ce;
+    }
+
+    .page {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 18px 16px;
+      background: #080a0c;
+    }
+
+    .small-label {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.25;
+    }
+
+    .route-card h3,
+    .data h3,
+    .safety h3,
+    .control h3,
+    .finish h3,
+    .sync h3 {
+      margin: 0 0 6px;
+      font-size: 19px;
+      line-height: 1.12;
+      font-weight: 740;
+    }
+
+    .route-card {
+      justify-content: space-between;
+      background:
+        linear-gradient(180deg, rgba(70, 211, 107, 0.11), transparent 42%),
+        #080a0c;
+    }
+
+    .mini-map {
+      position: relative;
+      height: 96px;
+      border-radius: 22px;
+      overflow: hidden;
+      margin: 8px 0;
+      background: #142027;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .stat {
+      padding: 9px;
+      border-radius: 8px;
+      background: #151a1f;
+      min-height: 48px;
+    }
+
+    .stat b {
+      display: block;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .stat span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .primary {
+      width: 100%;
+      min-height: 36px;
+      border: 0;
+      border-radius: 18px;
+      background: var(--route);
+      color: #061008;
+      font-weight: 760;
+      font-size: 14px;
+    }
+
+    .data .hero-number {
+      margin: 6px 0 12px;
+      font-size: 42px;
+      line-height: 0.95;
+      font-weight: 780;
+    }
+
+    .rows {
+      display: grid;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 9px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 13px;
+    }
+
+    .row span {
+      color: var(--muted);
+    }
+
+    .safety-meter {
+      display: grid;
+      place-items: center;
+      align-self: center;
+      width: 96px;
+      height: 96px;
+      margin: 10px 0 12px;
+      border-radius: 50%;
+      background:
+        conic-gradient(var(--route) 0 76%, #263038 76% 100%);
+    }
+
+    .safety-meter div {
+      display: grid;
+      place-items: center;
+      width: 74px;
+      height: 74px;
+      border-radius: 50%;
+      background: #080a0c;
+      font-weight: 760;
+      font-size: 20px;
+    }
+
+    .control {
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .control-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .action {
+      display: grid;
+      place-items: center;
+      height: 70px;
+      border-radius: 8px;
+      background: var(--button);
+      font-size: 12px;
+      font-weight: 680;
+    }
+
+    .action b {
+      display: block;
+      font-size: 24px;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .danger {
+      background: var(--danger);
+    }
+
+    .finish {
+      justify-content: space-between;
+      background: #0a0b0d;
+    }
+
+    .finish-summary {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .secondary,
+    .end-button {
+      min-height: 36px;
+      border: 0;
+      border-radius: 18px;
+      color: #fff;
+      font-weight: 720;
+      font-size: 13px;
+    }
+
+    .secondary {
+      background: #252b31;
+    }
+
+    .end-button {
+      background: var(--danger);
+    }
+
+    .sync {
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 12px;
+    }
+
+    .sync-icon {
+      display: grid;
+      place-items: center;
+      width: 78px;
+      height: 78px;
+      border-radius: 50%;
+      background: rgba(91, 231, 214, 0.13);
+      color: var(--cyan);
+      font-size: 34px;
+      font-weight: 760;
+      box-shadow: inset 0 0 0 1px rgba(91, 231, 214, 0.28);
+    }
+
+    .notes {
+      margin-top: 30px;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .notes h2 {
+      margin-bottom: 8px;
+    }
+
+    @media (max-width: 980px) {
+      header,
+      .notes {
+        grid-template-columns: 1fr;
+      }
+
+      .grid {
+        grid-template-columns: repeat(2, minmax(220px, 1fr));
+      }
+
+      .meta {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+        padding: 18px 0 0;
+      }
+    }
+
+    @media (max-width: 560px) {
+      main {
+        width: min(100vw - 20px, 360px);
+        padding-top: 22px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .caption {
+        min-height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <section>
+        <h1>WatchOS 徒步 App 产品原型 v0.1</h1>
+        <p>围绕 Apple Watch 首发 MVP 的腕上体验：路线准备后的 Watch 就绪、地图跟随、转向提醒、偏航处理、数据查看、安全判断、暂停结束和结束后回传。</p>
+      </section>
+      <section class="meta">
+        <b>原型范围</b>
+        <p>静态产品原型，用于评审页面结构、信息优先级和关键状态。地图为示意底图，不代表实测 MapKit 渲染效果。</p>
+      </section>
+    </header>
+
+    <section class="grid" aria-label="WatchOS 产品原型图">
+      <article class="prototype">
+        <div class="watch">
+          <div class="screen">
+            <div class="page route-card">
+              <div>
+                <div class="small-label">Watch 已就绪</div>
+                <h3>灵隐北高峰环线</h3>
+                <div class="mini-map">
+                  <div class="map"></div>
+                  <svg class="route" viewBox="0 0 188 96" aria-hidden="true">
+                    <path class="route-plan" d="M28 70 C50 46, 72 84, 96 54 S136 24, 160 38" />
+                    <circle cx="28" cy="70" r="5" fill="#46d36b" />
+                    <circle cx="160" cy="38" r="5" fill="#ffbd45" />
+                  </svg>
+                </div>
+                <div class="stats">
+                  <div class="stat"><b>8.6km</b><span>路线距离</span></div>
+                  <div class="stat"><b>420m</b><span>累计爬升</span></div>
+                  <div class="stat"><b>91%</b><span>Watch 电量</span></div>
+                  <div class="stat"><b>320m</b><span>距起点</span></div>
+                </div>
+              </div>
+              <button class="primary">开始徒步</button>
+            </div>
+          </div>
+        </div>
+        <div class="caption">
+          <strong>1. 路线就绪</strong>
+          <span>确认路线名称、距离、爬升、电量和距起点距离。开始后直接进入地图页。</span>
+        </div>
+      </article>
+
+      <article class="prototype">
+        <div class="watch">
+          <div class="screen">
+            <div class="map">
+              <div class="contour c1"></div>
+              <div class="contour c2"></div>
+              <div class="contour c3"></div>
+            </div>
+            <svg class="route" viewBox="0 0 188 232" aria-hidden="true">
+              <path class="route-plan" d="M30 172 C52 132, 70 150, 86 124 S108 80, 138 82 S158 66, 166 46" />
+              <path class="route-walked" d="M30 172 C52 132, 70 150, 82 130" />
+            </svg>
+            <div class="pin start">S</div>
+            <div class="pin end">E</div>
+            <div class="location"></div>
+            <div class="top-pill">路线上</div>
+            <div class="bottom-pill">剩余 2.4km</div>
+          </div>
+        </div>
+        <div class="caption">
+          <strong>2. 地图首屏</strong>
+          <span>计划路线、已走轨迹、当前位置和方向箭头是最高优先级。数据只保留一条判断信息。</span>
+        </div>
+      </article>
+
+      <article class="prototype">
+        <div class="watch">
+          <div class="screen">
+            <div class="map">
+              <div class="contour c1"></div>
+              <div class="contour c2"></div>
+              <div class="contour c3"></div>
+            </div>
+            <svg class="route" viewBox="0 0 188 232" aria-hidden="true">
+              <path class="route-plan" d="M30 172 C52 132, 70 150, 86 124 S108 80, 138 82 S158 66, 166 46" />
+              <path class="route-next" d="M91 119 C104 86, 119 79, 138 82" />
+              <path class="route-walked" d="M30 172 C52 132, 70 150, 82 130" />
+            </svg>
+            <div class="pin turn">↰</div>
+            <div class="location"></div>
+            <div class="top-pill amber">前方 45m 左转</div>
+            <div class="bottom-pill">继续 45m 后转向</div>
+          </div>
+        </div>
+        <div class="caption">
+          <strong>3. 接近转向</strong>
+          <span>高亮下一段路线，顶部给距离和方向，配合一次轻震提醒。</span>
+        </div>
+      </article>
+
+      <article class="prototype">
+        <div class="watch">
+          <div class="screen off">
+            <div class="map">
+              <div class="contour c1"></div>
+              <div class="contour c2"></div>
+              <div class="contour c3"></div>
+            </div>
+            <svg class="route" viewBox="0 0 188 232" aria-hidden="true">
+              <path class="route-plan" d="M30 172 C52 132, 70 150, 86 124 S108 80, 138 82 S158 66, 166 46" />
+              <path class="route-walked" d="M30 172 C52 132, 70 150, 82 130" />
+              <path class="off-line" d="M132 148 L88 126" />
+              <circle cx="88" cy="126" r="7" fill="#ff5a4f" />
+            </svg>
+            <div class="pin start">S</div>
+            <div class="location"></div>
+            <div class="top-pill warning">偏离 38m</div>
+            <div class="bottom-pill warning">向西南回到路线</div>
+          </div>
+        </div>
+        <div class="caption">
+          <strong>4. 偏航</strong>
+          <span>警示色连接当前位置和最近路线点，重点表达“离路线多远”和“往哪回”。</span>
+        </div>
+      </article>
+
+      <article class="prototype">
+        <div class="watch">
+          <div class="screen">
+            <div class="page data">
+              <div class="small-label">行进数据</div>
+              <h3>当前状态</h3>
+              <div class="hero-number">3.2km</div>
+              <div class="rows">
+                <div class="row"><span>用时</span><b>00:48</b></div>
+                <div class="row"><span>海拔</span><b>286m</b></div>
+                <div class="row"><span>累计爬升</span><b>168m</b></div>
+                <div class="row"><span>心率</span><b>128</b></div>
+                <div class="row"><span>剩余距离</span><b>5.4km</b></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="caption">
+          <strong>5. 数据页</strong>
+          <span>用于短暂查看运动状态。地图仍是默认首页，数据页不承担主导航。</span>
+        </div>
+      </article>
+
+      <article class="prototype">
+        <div class="watch">
+          <div class="screen">
+            <div class="page safety">
+              <div class="small-label">安全判断</div>
+              <h3>风险概览</h3>
+              <div class="safety-meter"><div>76%</div></div>
+              <div class="rows">
+                <div class="row"><span>电量</span><b>76%</b></div>
+                <div class="row"><span>定位</span><b>稳定</b></div>
+                <div class="row"><span>日落</span><b>18:54</b></div>
+                <div class="row"><span>预计完成</span><b>16:35</b></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="caption">
+          <strong>6. 安全页</strong>
+          <span>提供撤退判断所需信息：电量、定位可信度、日落和预计完成时间。</span>
+        </div>
+      </article>
+
+      <article class="prototype">
+        <div class="watch">
+          <div class="screen">
+            <div class="page control">
+              <div>
+                <div class="small-label">快捷操作</div>
+                <h3>控制</h3>
+              </div>
+              <div class="control-grid">
+                <div class="action"><b>Ⅱ</b>暂停</div>
+                <div class="action"><b>◆</b>标记</div>
+                <div class="action"><b>↩</b>返航</div>
+                <div class="action danger"><b>■</b>结束</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="caption">
+          <strong>7. 控制页</strong>
+          <span>长按地图或切到控制页进入。暂停、标记、返航、结束为低频但关键操作。</span>
+        </div>
+      </article>
+
+      <article class="prototype">
+        <div class="watch">
+          <div class="screen">
+            <div class="page finish">
+              <div>
+                <div class="small-label">结束确认</div>
+                <h3>结束本次徒步？</h3>
+              </div>
+              <div class="finish-summary">
+                <div class="stat"><b>8.8km</b><span>实际距离</span></div>
+                <div class="stat"><b>2:16</b><span>总用时</span></div>
+                <div class="stat"><b>430m</b><span>累计爬升</span></div>
+                <div class="stat"><b>1</b><span>偏航次数</span></div>
+              </div>
+              <button class="secondary">继续记录</button>
+              <button class="end-button">保存并结束</button>
+            </div>
+          </div>
+        </div>
+        <div class="caption">
+          <strong>8. 结束确认</strong>
+          <span>结束必须二次确认，显示摘要并明确保存轨迹，避免误触造成记录丢失。</span>
+        </div>
+      </article>
+
+      <article class="prototype">
+        <div class="watch">
+          <div class="screen">
+            <div class="page sync">
+              <div class="sync-icon">✓</div>
+              <div>
+                <h3>轨迹已保存</h3>
+                <p>等待同步到 iPhone</p>
+              </div>
+              <div class="rows" style="width:100%">
+                <div class="row"><span>本地记录</span><b>完整</b></div>
+                <div class="row"><span>连接状态</span><b>断连</b></div>
+                <div class="row"><span>同步策略</span><b>自动重试</b></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="caption">
+          <strong>9. 结束后回传</strong>
+          <span>Watch 先本地保存，iPhone 不在线时显示待同步，重连后自动补传。</span>
+        </div>
+      </article>
+    </section>
+
+    <section class="notes">
+      <div>
+        <h2>页面原则</h2>
+        <p>行进中默认回到地图页；数据、安全和控制都是辅助页，避免把 Watch 做成小号 iPhone。</p>
+      </div>
+      <div>
+        <h2>状态覆盖</h2>
+        <p>本版覆盖 MVP 验收里最关键的路线同步、开始、正常行进、转向、偏航、暂停结束和轨迹回传。</p>
+      </div>
+      <div>
+        <h2>待验证</h2>
+        <p>地图样式、底图可读性、转向阈值、偏航阈值和触觉提醒节奏需要在真实 Apple Watch 上验证。</p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

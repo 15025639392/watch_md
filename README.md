@@ -24,6 +24,7 @@
 - [WatchOS 徒步 App MVP 产品定义](./docs/watchos-hiking-app-product-v0.1.md)
 - [WatchOS 徒步 App MVP 开发切分](./docs/mvp-development-slices-v0.1.md)
 - [WatchOS 徒步 App 开发提示词与技术实施计划](./docs/watchos-development-prompt-implementation-plan-v0.1.md)
+- [WatchOS 徒步 App 产品原型 v0.1](./docs/prototypes/watchos-product-prototype-v0.1.html)
 
 ### 核心功能规格
 
