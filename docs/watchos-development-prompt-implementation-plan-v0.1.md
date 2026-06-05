@@ -62,6 +62,11 @@ iPhone 负责路线导入、路线管理、路线同步和复盘；Apple Watch �
 10. 不要在 Watch 地图页实现标准、卫星、混合图层切换。2026-06-06 查证 Apple MapKit 文档，`MapStyle.imagery` 和 `MapStyle.hybrid(...)` 在 watchOS 上可能渲染回 `Standard`，图层切换不能作为稳定 Watch 能力；相关能力优先放在 iPhone。
 11. Watch 路线卡片不是徒步会话。`HikingSession` 只在用户开始徒步时创建；`planned` 若实现，应只是开始流程中的内部状态，不能把每条已同步路线都变成历史会话。
 
+MapKit 图层限制官方参考：
+
+1. [MapStyle.imagery - Apple Developer Documentation](https://developer.apple.com/documentation/mapkit/mapstyle/imagery)
+2. [MapStyle.hybrid(elevation:pointsOfInterest:showsTraffic:) - Apple Developer Documentation](https://developer.apple.com/documentation/mapkit/mapstyle/hybrid%28elevation%3Apointsofinterest%3Ashowstraffic%3A%29)
+
 远端路线接口是 MVP 主路径。如果真实服务端接口尚未提供，请先实现同一协议形状的 mock client、本地 JSON fixture 或轻量 mock server，并在代码和交付说明中明确“服务端搜索/详情接口待接入”。不要因为缺少真实服务端而阻塞 GPX 导入、路线模型、地图预览或 Watch 同步。
 
 请按 slice 开发，每个 slice 都要做到可运行、可验证、可回滚。每次只实现当前 slice 所需的最小完整能力，避免把后续功能提前塞进 MVP。不要提前实现路线社区、AI 推荐、多地图源、专业等高线、团队位置共享、多日徒步、订阅体系、Android/Wear OS/华为手表版本，也不要在 MVP 中实现 Watch 端远程获取指定 GPX 路线。
@@ -236,6 +241,7 @@ Watch 地图页成为行进中主体验，能显示路线关系并触发偏航/�
 9. 生成 `SessionEvent`：offRouteStarted、offRouteUpdated、offRouteEnded、locationAccuracyPoor、turnAlertTriggered。
 10. 实现地图降级模式：底图不可用时仍渲染路线线框、当前位置、已走轨迹和偏航连接线。
 11. 不实现 Watch 图层切换按钮；watchOS MapKit 卫星/混合样式可能降级为标准底图。
+    官方参考：[MapStyle.imagery](https://developer.apple.com/documentation/mapkit/mapstyle/imagery)、[MapStyle.hybrid(elevation:pointsOfInterest:showsTraffic:)](https://developer.apple.com/documentation/mapkit/mapstyle/hybrid%28elevation%3Apointsofinterest%3Ashowstraffic%3A%29)。
 
 验收：
 

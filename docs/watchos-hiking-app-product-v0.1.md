@@ -188,6 +188,11 @@ MVP 不提供 Watch 端地图图层切换。
 3. 卫星、混合或更复杂图层优先放在 iPhone 路线详情和复盘中。
 4. 未来若要 Watch 稳定支持离线图、卫星图或等高线图，需要单独评估自定义瓦片或第三方地图方案。
 
+官方参考：
+
+1. [MapStyle.imagery - Apple Developer Documentation](https://developer.apple.com/documentation/mapkit/mapstyle/imagery)
+2. [MapStyle.hybrid(elevation:pointsOfInterest:showsTraffic:) - Apple Developer Documentation](https://developer.apple.com/documentation/mapkit/mapstyle/hybrid%28elevation%3Apointsofinterest%3Ashowstraffic%3A%29)
+
 ## 关键产品原则
 
 1. Watch 首屏必须是地图。
