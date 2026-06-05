@@ -195,11 +195,15 @@ Apple Watch 适合做完整的户外运动手表 App。它在定位、健康数�
 5. 需要确认 Wear Engine、Health Kit、Location Kit 在目标地区、目标手机系统和目标手表型号上的可用性。
 6. iOS 用户使用华为手表时，第三方联动能力通常弱于华为手机或 Android 生态。
 
+2026-06-06 追加调研结论：华为平台应按“智能可穿戴、轻量级智能可穿戴、手环、儿童/特殊形态设备”拆开判断。华为开发者文档明确存在智能可穿戴和轻量级智能可穿戴两类穿戴应用开发入口；华为消费者支持页也能证明 WATCH、GT、FIT、Ultimate、D/D2 等多个系列存在手表应用市场、地图或导航同步场景。但这些证据只能证明“存在相关能力和官方/合作应用路径”，不能直接推出“第三方徒步 App 可在所有华为手表上实现完整离线地图、后台定位和轨迹同步”。详细矩阵见 [华为各类型手表支持情况调研 v0.1](./docs/huawei-watch-support-research-v0.1.md)。
+
 ### 华为参考资料
 
 - Huawei Pairing watch/band with Android phone: https://consumer.huawei.com/en/support/content/en-us16008856/
 - Huawei HarmonyOS Wearable App Development: https://developer.huawei.com/consumer/en/multidevice/wearables/get-started/
+- Huawei HarmonyOS 穿戴应用开发入门: https://developer.huawei.com/consumer/cn/multidevice/wearables/get-started/
 - Huawei Wear Engine: https://developer.huawei.com/consumer/en/hms/huawei-wearengine/
+- Huawei Wear Engine 中文页: https://developer.huawei.com/consumer/cn/hms/huawei-wearengine/
 - Huawei Health Kit: https://developer.huawei.com/consumer/en/hms/huaweihealth/
 - Huawei Location Kit Codelab: https://developer.huawei.com/consumer/en/codelab/HMS-LocationKit/
 

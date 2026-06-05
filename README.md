@@ -49,6 +49,7 @@
 ### 华为手表
 
 - [华为手表开发环境搭建记录](./docs/huawei-watch-dev-env.md)
+- [华为各类型手表支持情况调研](./docs/huawei-watch-support-research-v0.1.md)
 - [HarmonyOS / Huawei watch 开发环境自检脚本](./scripts/check-harmonyos-watch-env.sh)
 
 ## 建议阅读顺序
