@@ -230,11 +230,11 @@
       position: absolute;
       display: grid;
       place-items: center;
-      width: 18px;
-      height: 18px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       color: #07100a;
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 800;
       background: var(--route);
       box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.35);
@@ -243,6 +243,24 @@
     .start { left: 25px; top: 162px; }
     .end { right: 25px; top: 45px; background: var(--amber); }
     .turn { left: 106px; top: 78px; background: #d7ff7c; }
+
+    .mini-pin {
+      position: absolute;
+      z-index: 2;
+      display: grid;
+      place-items: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      color: #07100a;
+      font-size: 11px;
+      font-weight: 800;
+      background: var(--route);
+      box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.32);
+    }
+
+    .mini-start { left: 20px; top: 60px; }
+    .mini-end { right: 18px; top: 28px; background: var(--amber); }
 
     .location {
       position: absolute;
@@ -607,9 +625,9 @@
                   <div class="map"></div>
                   <svg class="route" viewBox="0 0 188 96" aria-hidden="true">
                     <path class="route-plan" d="M28 70 C50 46, 72 84, 96 54 S136 24, 160 38" />
-                    <circle cx="28" cy="70" r="5" fill="#46d36b" />
-                    <circle cx="160" cy="38" r="5" fill="#ffbd45" />
                   </svg>
+                  <div class="mini-pin mini-start">起</div>
+                  <div class="mini-pin mini-end">终</div>
                 </div>
                 <div class="stats">
                   <div class="stat"><b>8.6km</b><span>路线距离</span></div>
@@ -640,8 +658,8 @@
               <path class="route-plan" d="M30 172 C52 132, 70 150, 86 124 S108 80, 138 82 S158 66, 166 46" />
               <path class="route-walked" d="M30 172 C52 132, 70 150, 82 130" />
             </svg>
-            <div class="pin start">S</div>
-            <div class="pin end">E</div>
+            <div class="pin start">起</div>
+            <div class="pin end">终</div>
             <div class="location"></div>
             <div class="top-pill">路线上</div>
             <div class="bottom-pill">剩余 2.4km</div>
@@ -666,6 +684,8 @@
               <path class="route-next" d="M91 119 C104 86, 119 79, 138 82" />
               <path class="route-walked" d="M30 172 C52 132, 70 150, 82 130" />
             </svg>
+            <div class="pin start">起</div>
+            <div class="pin end">终</div>
             <div class="pin turn">↰</div>
             <div class="location"></div>
             <div class="top-pill amber">前方 45m 左转</div>
@@ -692,7 +712,8 @@
               <path class="off-line" d="M132 148 L88 126" />
               <circle cx="88" cy="126" r="7" fill="#ff5a4f" />
             </svg>
-            <div class="pin start">S</div>
+            <div class="pin start">起</div>
+            <div class="pin end">终</div>
             <div class="location"></div>
             <div class="top-pill warning">偏离 38m</div>
             <div class="bottom-pill warning">向西南回到路线</div>
