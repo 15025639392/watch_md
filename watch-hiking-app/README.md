@@ -107,3 +107,8 @@ iOS 真机安装待完成签名配置：当前本机能看到已配对 iPhone �
 3. mock 远端目录只有一条样例路线；Watch 无本地路线时不再显示该样例路线，而是进入自由记录模式。
 4. workout 的能量/距离汇总尚未写入核心 `SessionSummary`。
 5. Watch 地图页不提供图层切换。2026-06-06 查证 Apple MapKit 文档，`MapStyle.imagery` 和 `MapStyle.hybrid(...)` 在 watchOS 上可能渲染回 `Standard` 标准地图，因此卫星/混合图层切换不作为稳定 Watch MVP 能力；更完整的图层检查优先放在 iPhone。
+
+官方参考：
+
+1. [MapStyle.imagery - Apple Developer Documentation](https://developer.apple.com/documentation/mapkit/mapstyle/imagery)
+2. [MapStyle.hybrid(elevation:pointsOfInterest:showsTraffic:) - Apple Developer Documentation](https://developer.apple.com/documentation/mapkit/mapstyle/hybrid%28elevation%3Apointsofinterest%3Ashowstraffic%3A%29)
