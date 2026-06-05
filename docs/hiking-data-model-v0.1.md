@@ -38,7 +38,7 @@
 | `routeId` | UUID/String | 是 | 路线稳定 ID |
 | `version` | Int | 是 | 路线版本，每次路线内容变化递增 |
 | `name` | String | 是 | 路线名称 |
-| `source` | Enum | 是 | `gpxImport`、`manual`、`shared` 等 |
+| `source` | Enum | 是 | `gpxImport`、`manual`、`shared`、`watchRemoteFetch` 等 |
 | `createdAt` | Date | 是 | 创建时间 |
 | `updatedAt` | Date | 是 | 更新时间 |
 | `distanceMeters` | Double | 是 | 计划路线距离 |
@@ -58,6 +58,7 @@
 1. `HikingRoute` 保存摘要和元数据，不直接塞入大量点。
 2. 大量点放在 `RouteVariant` 中，方便按需同步。
 3. `routeId + version` 用于判断 Watch 上路线是否过期。
+4. `watchRemoteFetch` 仅表示 Watch 按用户已知路线编号、短码或精确名称远程获取指定路线，不表示路线推荐、附近路线发现或路线社区。
 
 ## RouteVariant
 
@@ -376,3 +377,5 @@ paused -> finished
 4. 多日徒步和多段路线模型。
 5. 用户手动标记点的编辑与同步冲突规则。
 6. GPX/FIT/TCX 导出字段映射。
+7. Watch 远程获取指定路线的来源元数据，例如 `sourceProvider`、`remoteRouteId`、`queryText`、`fetchedAt`、`remoteChecksum`。
+8. Watch 远程获取指定路线时，服务端返回原始 GPX 还是已简化的 Watch route payload。
