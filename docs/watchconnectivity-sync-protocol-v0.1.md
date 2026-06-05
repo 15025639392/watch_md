@@ -140,8 +140,10 @@ Watch 收到后：
 | `manifestSent` | 等待 Watch 响应 | 检查本地路线 |
 | `readyForPayload` | 发送 payload | 显示接收中 |
 | `payloadTransferred` | 等待安装 ACK | 校验并安装 |
-| `installed` | 显示 Watch 已就绪 | 显示路线卡片 |
+| `installed` | 显示 Watch 已就绪 | 显示路线卡片，等待用户确认使用 |
 | `failed` | 显示重试 | 保留旧路线 |
+
+注意：`routeInstalled` 只表示路线已在 Watch 本地可用，不表示该路线已经绑定当前会话。任何路线进入导航前，都必须由用户在 Watch 上确认。
 
 ## 会话状态同步
 
@@ -344,7 +346,11 @@ iPhone 行为：
 1. 同 `routeId + version + checksum` 视为同一版本。
 2. 同 routeId 但 version 更高，视为更新路线。
 3. Watch 正在进行该 routeId 的会话时，不自动替换当前使用中的路线。
-4. 新路线可下载但标记为“下次使用”。
+4. 新路线可下载但默认标记为“下次使用”。
+5. 如果 Watch 正在自由记录且没有绑定计划路线，新下发路线可以进入中途接入判断：先安装路线，再由 Watch 计算当前位置到路线的距离，并通过用户确认决定是否绑定当前会话。
+6. 中途接入确认前，不发送表示当前会话已切换路线的 `sessionStatus`。
+7. 中途接入确认后，后续 `sessionStatus` 可带新的 `routeId`、`routeVersion`、`routeProgressMeters` 和 `offRouteDistanceMeters`；确认前的历史状态不补发、不改写。
+8. iPhone 下发路线、更新路线或重试同步，都不能绕过 Watch 端确认层。
 
 ### 轨迹去重
 
@@ -386,7 +392,7 @@ iPhone 行为：
 | 状态 | 文案 |
 | --- | --- |
 | 接收中 | 正在接收路线 |
-| 已安装 | 可开始徒步 |
+| 已安装 | 使用此路线开始 |
 | 安装失败 | 路线不可用 |
 | 版本过旧 | 请从 iPhone 重新同步 |
 

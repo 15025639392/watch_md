@@ -9,12 +9,17 @@ public enum SyncEndpoint: String, Codable, Sendable {
 public enum SyncEnvelopeKind: String, Codable, Sendable {
     case routeManifest
     case routePayload
+    case sessionStatus
+    case trackChunk
+    case eventChunk
+    case sessionSummary
     case syncAck
 }
 
 public enum SyncAckStatus: String, Codable, Sendable {
     case ok
     case alreadyReceived
+    case missingData
     case rejected
     case failed
 }
@@ -25,6 +30,13 @@ public enum SyncAckAction: String, Codable, Sendable {
     case routeManifestRejected
     case routeInstalled
     case routePayloadRejected
+    case sessionStatusReceived
+    case trackChunkReceived
+    case eventChunkReceived
+    case sessionSummaryReceived
+    case missingRangesRequested
+    case routeBackfillRequested
+    case sessionComplete
 }
 
 public enum RouteSyncState: String, Codable, Sendable {
@@ -135,18 +147,43 @@ public struct RoutePayload: Codable, Equatable, Sendable {
 }
 
 public struct SyncAck: Codable, Equatable, Sendable {
+    public var ackId: String
+    public var ackForEnvelopeId: String?
     public var status: SyncAckStatus
     public var action: SyncAckAction
     public var entityId: String
     public var entityVersion: Int?
+    public var missingRanges: [SequenceRange]
     public var message: String?
 
-    public init(status: SyncAckStatus, action: SyncAckAction, entityId: String, entityVersion: Int?, message: String? = nil) {
+    public init(
+        ackId: String = UUID().uuidString,
+        ackForEnvelopeId: String? = nil,
+        status: SyncAckStatus,
+        action: SyncAckAction,
+        entityId: String,
+        entityVersion: Int?,
+        missingRanges: [SequenceRange] = [],
+        message: String? = nil
+    ) {
+        self.ackId = ackId
+        self.ackForEnvelopeId = ackForEnvelopeId
         self.status = status
         self.action = action
         self.entityId = entityId
         self.entityVersion = entityVersion
+        self.missingRanges = missingRanges
         self.message = message
+    }
+}
+
+public struct SequenceRange: Codable, Equatable, Sendable {
+    public var startSequence: Int
+    public var endSequence: Int
+
+    public init(startSequence: Int, endSequence: Int) {
+        self.startSequence = startSequence
+        self.endSequence = endSequence
     }
 }
 

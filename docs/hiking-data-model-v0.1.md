@@ -210,7 +210,8 @@ paused -> finished
 2. `abandoned` 用于用户明确丢弃记录。
 3. App 崩溃或 Watch 重启后，通过 `active` 或 `paused` 状态恢复。
 4. MVP 允许 Watch 在没有计划路线时创建自由记录会话。当前实现可使用内部占位 `routeId` 标记自由记录；后续数据模型可演进为 `routeId` / `routeVersion` 可空并增加 `sessionMode = plannedRoute | freeRecording`。
-5. 自由记录会话不产生路线投影、偏航和转向事件。
+5. 自由记录会话默认不产生路线投影、偏航和转向事件。
+6. 如果自由记录中途经数据判断和用户确认接入路线，接入前的历史轨迹仍不补算路线投影、偏航和转向事件；接入后的轨迹点按确认时刻的最近路线投影点继续计算。
 
 ## TrackPoint
 

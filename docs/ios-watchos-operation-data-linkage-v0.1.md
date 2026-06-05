@@ -60,6 +60,19 @@ Watch 无可用计划路线
   -> iPhone 按自由记录复盘
 ```
 
+自由记录中途收到路线：
+
+```txt
+Watch 正在自由记录
+  -> iPhone 下发 routeManifest / routePayload
+  -> Watch 安装路线
+  -> Watch 数据判断层计算当前位置与路线距离
+  -> 距离过远：路线保留为下次可用，当前会话继续自由记录
+  -> 距离可接受：Watch 弹出确认
+  -> 用户确认后从最近路线投影点开始路线跟随
+  -> 确认前轨迹不补算偏航、转向或路线进度
+```
+
 ## iPhone 操作规格
 
 ### 1. 路线列表
@@ -164,6 +177,7 @@ UI 状态：
 | 部分同步 | 缺 track 或 event 范围 | 标记数据不完整 |
 | 完整同步 | 摘要、最终轨迹和最终事件都已收齐 | 正常复盘 |
 | 自由记录 | 会话无真实计划路线 | 只显示实际轨迹，不显示偏航和路线进度 |
+| 中途接入路线 | 自由记录会话确认绑定后下发路线 | 接入前只显示实际轨迹，接入后显示计划路线、路线进度和后续偏航事件 |
 | 健康数据缺失 | 无 HealthKit 运动引用或指标为空 | 地图和轨迹仍可用 |
 
 ## Watch 操作规格
@@ -174,7 +188,7 @@ UI 状态：
 
 1. 查看最近安装路线。
 2. 确认路线名称、距离、同步时间、电量和定位状态。
-3. 点击“开始徒步”。
+3. 点击“使用此路线开始”。
 4. 没有路线时点击“自由记录”。
 
 系统动作：
@@ -184,7 +198,13 @@ UI 状态：
 | 打开 Watch App | 已安装 `RoutePayload` | 最近可用路线状态 | 无 |
 | 收到 manifest | `routeManifest` | 待接收路线状态 | `syncAck(readyForPayload/alreadyReceived/rejected)` |
 | 收到 payload | `routePayload` | 原子安装路线、更新同步时间 | `syncAck(routeInstalled/routePayloadRejected)` |
-| 点击开始 | 已安装路线、权限、电量 | `HikingSession(status=active)` | `sessionStatus` |
+| 确认使用路线开始 | 已安装路线、权限、电量 | `HikingSession(status=active)` 并绑定该路线版本 | `sessionStatus` |
+
+限制：
+
+1. 路线安装成功不等于开始导航。
+2. iPhone 不能远程替用户选择当前导航路线。
+3. Watch 有多条可用路线时，必须先选定并确认其中一条。
 
 ### 2. 地图页
 

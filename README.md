@@ -10,7 +10,7 @@
 
 - [Apple Watch 徒步 App 工程骨架](./watch-hiking-app/README.md)
 
-当前工程目录为 `watch-hiking-app/`。Slice 1 已建立 Swift Package 核心包、iPhone/Watch SwiftUI 源码骨架、GPX fixture 和单元测试；真实服务端路线搜索/详情接口、Xcode app target、WatchConnectivity、Core Location、HKWorkoutSession 和 MapKit 真机验证仍按后续 slice 接入。
+当前工程目录为 `watch-hiking-app/`。已建立 Swift Package 核心包、iPhone/Watch SwiftUI 源码骨架、GPX fixture、Xcode app target 和单元测试；路线导入、模拟路线同步、Watch 会话记录、地图偏航 MVP、会话/轨迹回传核心模型、Watch 上传入口和 iPhone 接收入口已落代码。真实服务端路线搜索/详情接口、签名安装闭环、WatchConnectivity 断连/后台/锁屏/重连表现、Core Location / HKWorkoutSession / MapKit 长时间表现仍需真机验证。
 
 ## 当前结论
 

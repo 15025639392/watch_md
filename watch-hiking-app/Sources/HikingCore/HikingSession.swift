@@ -240,6 +240,18 @@ public actor HikingSessionStore {
             stored.session.status == .active || stored.session.status == .paused
         }
     }
+
+    public func updateSyncStatus(sessionId: String, syncStatus: SessionSyncStatus) throws -> StoredHikingSession {
+        var stored = try load(sessionId: sessionId)
+        stored.session.syncStatus = syncStatus
+        stored.session.lastUpdatedAt = Date()
+        if var summary = stored.summary {
+            summary.syncStatus = syncStatus
+            stored.summary = summary
+        }
+        try save(stored)
+        return stored
+    }
 }
 
 public actor HikingSessionRecorder {

@@ -23,6 +23,7 @@ final class WatchRouteCardViewModel: ObservableObject {
     @Published private(set) var locationStatusText = "定位未启动"
     @Published private(set) var workoutStatusText = "运动未启动"
     @Published private(set) var workoutMetrics = WorkoutMetrics()
+    @Published private(set) var uploadStatusText = "等待回传"
     @Published private(set) var trackPoints: [TrackPoint] = []
     @Published private(set) var currentCoordinate: CLLocationCoordinate2D?
     @Published private(set) var routeMatch = RouteMatchSnapshot.empty
@@ -33,6 +34,7 @@ final class WatchRouteCardViewModel: ObservableObject {
     private let routeStore: RouteStore
     private let locationSampler = WatchLocationSampler()
     private let workoutController = WatchWorkoutController()
+    private let uploadService: WatchSessionUploadService
     private var matcher: WatchRouteMatcher?
     private var isOffRouteEventOpen = false
     private var lastOffRouteUpdateAt: Date?
@@ -46,6 +48,10 @@ final class WatchRouteCardViewModel: ObservableObject {
         let store = try! HikingSessionStore(directoryURL: sessionDirectory)
         recorder = HikingSessionRecorder(store: store)
         routeStore = try! RouteStore(directoryURL: documentDirectory.appendingPathComponent("WatchInstalledRoutes", isDirectory: true))
+        uploadService = WatchSessionUploadService(
+            sessionStore: store,
+            pendingDirectoryURL: documentDirectory.appendingPathComponent("WatchPendingUploads", isDirectory: true)
+        )
         locationSampler.onLocation = { [weak self] location in
             guard let self else { return }
             Task { await self.append(location) }
@@ -58,6 +64,9 @@ final class WatchRouteCardViewModel: ObservableObject {
         }
         workoutController.onMetricsChange = { [weak self] metrics in
             self?.workoutMetrics = metrics
+        }
+        uploadService.onStatusChange = { [weak self] text in
+            self?.uploadStatusText = text
         }
     }
 
@@ -93,6 +102,7 @@ final class WatchRouteCardViewModel: ObservableObject {
 
     func load() async {
         guard !isLoadingRoute else { return }
+        uploadService.start()
         isLoadingRoute = true
         errorMessage = nil
         defer { isLoadingRoute = false }
@@ -190,6 +200,8 @@ final class WatchRouteCardViewModel: ObservableObject {
                 try await recorder.resume()
             }
             summary = try await recorder.finish()
+            let snapshot = try await recorder.storedSnapshot()
+            await uploadService.upload(snapshot)
             session = nil
             routeMatch = .empty
             isOffRouteEventOpen = false
@@ -1106,7 +1118,7 @@ struct WatchCompactStatus: View {
         if let errorMessage = viewModel.errorMessage {
             return errorMessage
         }
-        return "\(viewModel.statusText) · \(viewModel.routeSourceText)"
+        return "\(viewModel.statusText) · \(viewModel.uploadStatusText)"
     }
 }
 
@@ -1119,8 +1131,9 @@ struct WatchStatusFooter: View {
             Text(viewModel.routeSourceText)
             Text(viewModel.workoutStatusText)
             Text(viewModel.locationStatusText)
+            Text(viewModel.uploadStatusText)
             if let summary = viewModel.summary {
-                Text("用时 \(summary.durationText) · 待回传 iPhone")
+                Text("用时 \(summary.durationText) · \(viewModel.uploadStatusText)")
             }
             if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)

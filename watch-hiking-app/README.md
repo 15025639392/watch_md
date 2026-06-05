@@ -51,6 +51,26 @@ Slice 4 已开始，Watch 地图页 MVP 已接入：
 7. 首次确认偏航会写入 `offRouteStarted` 事件并触发 Watch 触觉提醒；持续偏航会限频写入 `offRouteUpdated`，回到路线会写入 `offRouteEnded`。
 8. 定位不稳会写入 `locationAccuracyPoor`，恢复到可靠路线判断后写入 `locationRecovered`。
 
+Slice 5 已开始并完成核心可测试闭环：
+
+1. `sessionStatus`、`trackChunk`、`eventChunk` 和 `sessionSummary` envelope 已接入共享同步模型。
+2. Watch 端可把已结束的 `StoredHikingSession` 切成上传计划，包含状态、轨迹 chunk、事件 chunk 和摘要。
+3. Watch 端新增待上传队列模型，未收到 ACK 前保留 envelope，收到 `ok` / `alreadyReceived` ACK 后再清理。
+4. iPhone 端新增会话接收器，按 `sessionId + TrackPoint.sequence` 去重轨迹点，按 `eventId` 去重事件。
+5. 重复 chunk 会返回 `syncAck(status=alreadyReceived, action=trackChunkReceived/eventChunkReceived)`。
+6. 乱序或缺失轨迹会返回 `syncAck(status=missingData, action=missingRangesRequested)` 并带缺失 sequence 范围。
+7. iPhone 收齐摘要、最终轨迹和最终事件后返回 `syncAck(status=ok, action=sessionComplete)`。
+8. iPhone App 已接入 `WCSessionDelegate` 真实接收入口：通过 `transferUserInfo` 接收 Watch envelope、调用会话接收器、落盘到 `ReceivedSessions`，并通过 `transferUserInfo` 回发 ACK。
+9. iPhone 路线列表首屏显示 Watch 会话回传状态和已接收会话数量，状态卡可点击进入回传会话列表。
+10. iPhone 已接入 Watch 回传会话列表：按“正在同步 / 部分同步 / 已完成”分组，展示轨迹点、事件数和缺口数量。
+11. iPhone 已接入回传详情页：展示轨迹完整性、缺失 sequence 范围、事件数、摘要状态；同步完成后可进入实际轨迹复盘地图。
+12. Watch App 已接入 `WCSessionDelegate` 真实上传入口：会话结束后生成 `SessionUploadPlan`，通过 `transferUserInfo` 发送 status、track chunk、event chunk 和 summary。
+13. Watch App 已接入 ACK 处理：收到 iPhone ACK 后清理 pending envelope，收到 `missingRangesRequested` 后按缺失 sequence 补传相关 track chunk，收到 `sessionComplete` 后显示回传完成。
+14. Watch App 已接入 pending upload 持久化：会话结束上传时把待 ACK envelope ID 落盘到 `WatchPendingUploads`。
+15. Watch App 已接入重启/重连恢复：`WCSession` 激活后扫描已结束且未 `synced` 的本地会话，重新生成上传计划并自动补发。
+16. Watch App 已接入本地同步状态回写：开始上传写为 `syncing`，收到 `sessionComplete` 写为 `synced`，失败/拒绝写为 `failed`。
+17. Watch 上传状态机已下沉到独立 `WatchSessionUploadEngine` actor；主线程上的 `WatchSessionUploadService` 只保留 `WCSessionDelegate`、`transferUserInfo` 和 UI 状态回调 glue。
+
 服务端搜索/详情接口待接入；当前使用 mock client 和测试 fixture，不把 mock 结果写成真实服务端能力。
 
 ## 验证
@@ -96,7 +116,7 @@ iOS 真机安装待完成签名配置：当前本机能看到已配对 iPhone �
 真机待验证：
 
 1. MapKit iPhone 路线预览已接入 Xcode app target；视觉渲染仍需要真机/模拟器验证。
-2. WatchConnectivity 真实路线下发、ACK 和可靠文件传输需要 iPhone + Apple Watch 真机验证；当前 iOS 真机 + Watch 模拟器只能跑模拟器同步模式。
+2. WatchConnectivity 真实路线下发、会话回传、ACK 处理和可靠文件传输需要 iPhone + Apple Watch 真机验证；当前已完成 Watch 上传入口与 iPhone 接收入口，但断连、后台、锁屏、重连和大体量 chunk 的真实表现仍需真机验证。
 3. Core Location 真实采样、HKWorkoutSession 生命周期、Watch 地图性能、偏航状态切换、触觉提醒和电量策略需要后续 slice 真机验证。
 4. Slice 3 当前已接入 Core Location、HKWorkoutSession 和实时 workout 指标最小闭环；后台持续采样、运动权限弹窗、HealthKit 写入、心率数据刷新和长时间运行仍需要 Apple Watch 真机验证。
 

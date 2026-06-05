@@ -5,10 +5,15 @@ import UniformTypeIdentifiers
 @main
 struct WatchHikingiPhoneApp: App {
     @StateObject private var routeListViewModel = RouteListViewModel()
+    @StateObject private var sessionSyncService = iPhoneSessionSyncService()
 
     var body: some Scene {
         WindowGroup {
             RouteListView(viewModel: routeListViewModel)
+                .environmentObject(sessionSyncService)
+                .task {
+                    sessionSyncService.start()
+                }
                 .onOpenURL { url in
                     Task {
                         await routeListViewModel.importGPX(from: url)
@@ -83,6 +88,7 @@ final class RouteListViewModel: ObservableObject {
 
 struct RouteListView: View {
     @StateObject var viewModel: RouteListViewModel
+    @EnvironmentObject private var sessionSyncService: iPhoneSessionSyncService
     @State private var searchText = ""
     @State private var isImportingGPX = false
     @State private var selectedFilter: RouteFilter = .remote
@@ -101,6 +107,17 @@ struct RouteListView: View {
                             }
                         }
                         .pickerStyle(.segmented)
+
+                        NavigationLink {
+                            WatchSessionSyncListView()
+                        } label: {
+                            WatchSessionSyncStatusCard(
+                                message: sessionSyncService.lastSyncMessage,
+                                receivedCount: sessionSyncService.receivedSessions.count,
+                                isAvailable: sessionSyncService.isWatchConnectivityAvailable
+                            )
+                        }
+                        .buttonStyle(.plain)
 
                         VStack(spacing: 0) {
                             switch selectedFilter {
@@ -258,6 +275,260 @@ struct HeaderActions: View {
             .background(AppTheme.panel)
             .clipShape(Circle())
         }
+    }
+}
+
+struct WatchSessionSyncStatusCard: View {
+    let message: String
+    let receivedCount: Int
+    let isAvailable: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: isAvailable ? "applewatch.radiowaves.left.and.right" : "applewatch.slash")
+                .font(.headline)
+                .foregroundStyle(isAvailable ? AppTheme.blue : .secondary)
+                .frame(width: 32, height: 32)
+                .background(AppTheme.secondaryFill)
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(message)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+                Text("已接收 \(receivedCount) 条 Watch 会话")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(12)
+        .background(AppTheme.panel)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+struct WatchSessionSyncListView: View {
+    @EnvironmentObject private var sessionSyncService: iPhoneSessionSyncService
+
+    var body: some View {
+        ZStack {
+            AppTheme.background.ignoresSafeArea()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    WatchSessionSyncStatusCard(
+                        message: sessionSyncService.lastSyncMessage,
+                        receivedCount: sessionSyncService.receivedSessions.count,
+                        isAvailable: sessionSyncService.isWatchConnectivityAvailable
+                    )
+
+                    if sessionSyncService.receivedSessions.isEmpty {
+                        ContentUnavailableView {
+                            Label("暂无 Watch 回传", systemImage: "applewatch")
+                        } description: {
+                            Text("徒步结束后，Watch 会把轨迹、事件和摘要回传到这里。")
+                        }
+                        .padding(.top, 80)
+                    } else {
+                        ForEach(SessionSyncDisplayState.allCases) { state in
+                            let records = sessionSyncService.receivedSessions.filter { $0.displayState == state }
+                            if !records.isEmpty {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(state.sectionTitle)
+                                        .font(.headline)
+                                        .padding(.horizontal, 2)
+
+                                    VStack(spacing: 0) {
+                                        ForEach(records, id: \.sessionId) { record in
+                                            NavigationLink {
+                                                WatchSessionSyncDetailView(record: record)
+                                            } label: {
+                                                WatchSessionRecordRow(record: record)
+                                            }
+                                            .buttonStyle(.plain)
+
+                                            if record.sessionId != records.last?.sessionId {
+                                                Divider().padding(.leading, 54)
+                                            }
+                                        }
+                                    }
+                                    .background(AppTheme.panel)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding()
+            }
+        }
+        .navigationTitle("Watch 回传")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+struct WatchSessionRecordRow: View {
+    let record: ReceivedSessionRecord
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: record.displayState.systemImage)
+                .font(.headline)
+                .foregroundStyle(record.displayState.tint)
+                .frame(width: 34, height: 34)
+                .background(AppTheme.secondaryFill)
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(record.displayTitle)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    Spacer()
+                    StatusPill(text: record.displayState.title, style: record.displayState.pillStyle)
+                }
+                HStack {
+                    Text("\(record.trackPoints.count)/\(record.expectedTrackPointCount) 点")
+                    Text("\(record.events.count) 事件")
+                    if !record.missingTrackRanges.isEmpty {
+                        Text("\(record.missingTrackRanges.count) 段缺口")
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(12)
+    }
+}
+
+struct WatchSessionSyncDetailView: View {
+    let record: ReceivedSessionRecord
+
+    var body: some View {
+        ZStack {
+            AppTheme.background.ignoresSafeArea()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            StatusPill(text: record.displayState.title, style: record.displayState.pillStyle)
+                            Spacer()
+                            Text(record.dateText)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Text(record.displayTitle)
+                            .font(.title2.bold())
+                            .lineLimit(2)
+                        SessionSyncMetricGrid(record: record)
+                    }
+                    .padding(12)
+                    .background(AppTheme.panel)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("回传完整性")
+                            .font(.headline)
+                        DetailStatusRow(title: "轨迹点", value: "\(record.trackPoints.count)/\(record.expectedTrackPointCount)")
+                        DetailStatusRow(title: "事件", value: "\(record.events.count)")
+                        DetailStatusRow(title: "摘要", value: record.summary == nil ? "未收到" : "已收到")
+                        DetailStatusRow(title: "状态", value: record.displayState.title)
+                    }
+                    .padding(12)
+                    .background(AppTheme.panel)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("缺失范围")
+                            .font(.headline)
+                        if record.missingTrackRanges.isEmpty {
+                            DetailStatusRow(title: "轨迹缺口", value: "无")
+                        } else {
+                            ForEach(record.missingTrackRanges, id: \.displayText) { range in
+                                DetailStatusRow(title: "sequence", value: range.displayText)
+                            }
+                        }
+                    }
+                    .padding(12)
+                    .background(AppTheme.panel)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                    if record.canOpenReview {
+                        NavigationLink {
+                            SessionReviewView(record: record)
+                        } label: {
+                            Label("查看复盘", systemImage: "map")
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 44)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.white)
+                        .background(AppTheme.blue)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                }
+                .padding()
+            }
+        }
+        .navigationTitle("回传详情")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+struct SessionSyncMetricGrid: View {
+    let record: ReceivedSessionRecord
+
+    var body: some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+            MetricTile(title: "轨迹点", value: "\(record.trackPoints.count)")
+            MetricTile(title: "事件", value: "\(record.events.count)")
+            MetricTile(title: "缺口", value: "\(record.missingTrackRanges.count)")
+            MetricTile(title: "距离", value: Formatters.distance(record.summary?.distanceMeters ?? 0))
+            MetricTile(title: "时长", value: record.durationText)
+            MetricTile(title: "偏航", value: "\(record.summary?.offRouteEventCount ?? 0)")
+        }
+    }
+}
+
+struct SessionReviewView: View {
+    let record: ReceivedSessionRecord
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            SessionTrackMap(trackPoints: record.trackPoints)
+                .ignoresSafeArea()
+
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    StatusPill(text: "同步完成", style: .ok)
+                    Spacer()
+                    Text(record.dateText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Text(record.displayTitle)
+                    .font(.title2.bold())
+                    .lineLimit(2)
+                SessionSyncMetricGrid(record: record)
+            }
+            .padding(12)
+            .background(.regularMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .padding()
+        }
+        .navigationTitle("徒步复盘")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -421,6 +692,29 @@ struct StatusPill: View {
             .padding(.vertical, 4)
             .background(style.background)
             .clipShape(Capsule())
+    }
+}
+
+struct MetricTile: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(value)
+                .font(.headline)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(AppTheme.tertiaryFill)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 
@@ -707,6 +1001,78 @@ private struct RoutePatternMap: UIViewRepresentable {
     }
 }
 
+private struct SessionTrackMap: UIViewRepresentable {
+    let trackPoints: [TrackPoint]
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func makeUIView(context: Context) -> MKMapView {
+        let mapView = MKMapView(frame: .zero)
+        mapView.delegate = context.coordinator
+        mapView.showsCompass = true
+        mapView.showsScale = true
+        mapView.pointOfInterestFilter = .excludingAll
+        return mapView
+    }
+
+    func updateUIView(_ mapView: MKMapView, context: Context) {
+        context.coordinator.trackOverlay = nil
+        mapView.mapType = .standard
+        mapView.removeOverlays(mapView.overlays)
+        mapView.removeAnnotations(mapView.annotations)
+
+        let coordinates = trackPoints.sorted { $0.sequence < $1.sequence }.map(\.locationCoordinate)
+        guard let first = coordinates.first else { return }
+
+        if coordinates.count >= 2 {
+            let polyline = MKPolyline(coordinates: coordinates, count: coordinates.count)
+            context.coordinator.trackOverlay = polyline
+            mapView.addOverlay(polyline)
+            mapView.setVisibleMapRect(polyline.boundingMapRect, edgePadding: UIEdgeInsets(top: 90, left: 30, bottom: 220, right: 30), animated: false)
+        } else {
+            mapView.setRegion(
+                MKCoordinateRegion(center: first, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)),
+                animated: false
+            )
+        }
+
+        mapView.addAnnotation(RouteEndpointAnnotation(title: "起点", coordinate: first))
+        if let last = coordinates.last, coordinates.count > 1 {
+            mapView.addAnnotation(RouteEndpointAnnotation(title: "终点", coordinate: last))
+        }
+    }
+
+    final class Coordinator: NSObject, MKMapViewDelegate {
+        weak var trackOverlay: MKPolyline?
+
+        func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+            guard let polyline = overlay as? MKPolyline, polyline === trackOverlay else {
+                return MKOverlayRenderer(overlay: overlay)
+            }
+            let renderer = MKPolylineRenderer(polyline: polyline)
+            renderer.strokeColor = UIColor.systemBlue
+            renderer.lineWidth = 5
+            renderer.lineCap = .round
+            renderer.lineJoin = .round
+            return renderer
+        }
+
+        func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            guard let endpoint = annotation as? RouteEndpointAnnotation else { return nil }
+            let identifier = "SessionEndpointAnnotation"
+            let view = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
+            view.annotation = annotation
+            if let marker = view as? MKMarkerAnnotationView {
+                marker.markerTintColor = endpoint.title == "起点" ? UIColor.systemGreen : UIColor.systemOrange
+                marker.glyphText = endpoint.title == "起点" ? "起" : "终"
+            }
+            return view
+        }
+    }
+}
+
 private final class RouteEndpointAnnotation: NSObject, MKAnnotation {
     let title: String?
     let coordinate: CLLocationCoordinate2D
@@ -929,6 +1295,54 @@ private enum AppTheme {
     static let red = Color(red: 1.000, green: 0.231, blue: 0.188)
 }
 
+enum SessionSyncDisplayState: String, CaseIterable, Identifiable {
+    case syncing
+    case partial
+    case completed
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .syncing: "正在同步"
+        case .partial: "部分同步"
+        case .completed: "已完成"
+        }
+    }
+
+    var sectionTitle: String {
+        switch self {
+        case .syncing: "正在同步"
+        case .partial: "部分同步"
+        case .completed: "已完成"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .syncing: "arrow.triangle.2.circlepath"
+        case .partial: "exclamationmark.arrow.triangle.2.circlepath"
+        case .completed: "checkmark.circle"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .syncing: AppTheme.blue
+        case .partial: AppTheme.orange
+        case .completed: AppTheme.green
+        }
+    }
+
+    var pillStyle: PillStyle {
+        switch self {
+        case .syncing: .neutral
+        case .partial: .warning
+        case .completed: .ok
+        }
+    }
+}
+
 enum PillStyle {
     case ok
     case warning
@@ -951,6 +1365,82 @@ enum PillStyle {
         case .danger: AppTheme.red.opacity(0.13)
         case .neutral: AppTheme.blue.opacity(0.10)
         }
+    }
+}
+
+private extension ReceivedSessionRecord {
+    var displayState: SessionSyncDisplayState {
+        if syncStatus == .synced || (summary != nil && missingTrackRanges.isEmpty && trackPoints.count == expectedTrackPointCount) {
+            return .completed
+        }
+        if summary != nil || !missingTrackRanges.isEmpty {
+            return .partial
+        }
+        return .syncing
+    }
+
+    var displayTitle: String {
+        summary?.routeName ?? status?.routeId ?? "自由记录"
+    }
+
+    var expectedTrackPointCount: Int {
+        if let summary {
+            return summary.trackPointCount
+        }
+        return max(status?.trackPointCount ?? 0, trackPoints.count)
+    }
+
+    var missingTrackRanges: [SequenceRange] {
+        let expected = expectedTrackPointCount
+        guard expected > 0 else { return [] }
+        let received = Set(trackPoints.map(\.sequence))
+        var ranges: [SequenceRange] = []
+        var start: Int?
+        for sequence in 0..<expected {
+            if !received.contains(sequence) {
+                start = start ?? sequence
+            } else if let missingStart = start {
+                ranges.append(SequenceRange(startSequence: missingStart, endSequence: sequence - 1))
+                start = nil
+            }
+        }
+        if let missingStart = start {
+            ranges.append(SequenceRange(startSequence: missingStart, endSequence: expected - 1))
+        }
+        return ranges
+    }
+
+    var canOpenReview: Bool {
+        displayState == .completed && trackPoints.isEmpty == false
+    }
+
+    var dateText: String {
+        guard let date = summary?.endedAt ?? status?.lastUpdatedAt ?? trackPoints.last?.timestamp else {
+            return "未知时间"
+        }
+        return Self.shortDateFormatter.string(from: date)
+    }
+
+    var durationText: String {
+        guard let seconds = summary?.durationSeconds else { return "--" }
+        let hours = seconds / 3600
+        let minutes = (seconds % 3600) / 60
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        }
+        return "\(minutes)m"
+    }
+
+    static var shortDateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM-dd HH:mm"
+        return formatter
+    }
+}
+
+private extension SequenceRange {
+    var displayText: String {
+        startSequence == endSequence ? "\(startSequence)" : "\(startSequence)-\(endSequence)"
     }
 }
 
@@ -1008,6 +1498,12 @@ private extension RoutePoint {
 }
 
 private extension GeoCoordinate {
+    var locationCoordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
+}
+
+private extension TrackPoint {
     var locationCoordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
