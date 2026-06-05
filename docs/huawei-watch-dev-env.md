@@ -37,6 +37,41 @@ bash scripts/check-harmonyos-watch-env.sh
 
 这个脚本会检查 DevEco Studio、HarmonyOS SDK、WearEngine、liteWearable 预览器、Node、ohpm、hdc 和 Java。脚本对外部命令带了超时保护，避免某个工具启动异常时卡住整次自检。
 
+## 手表模拟器镜像
+
+检查本机是否已经下载手表模拟器镜像：
+
+```sh
+bash scripts/check-huawei-watch-emulator.sh
+```
+
+当前 DevEco Studio 已有以下手表虚拟设备模板：
+
+| API | 模板 | 设备类型 | 分辨率 |
+| --- | --- | --- | --- |
+| 20 | `Huawei_Wearable` | `wearable` | 466 x 466 |
+| 21 | `Huawei_Wearable` | `wearable` | 466 x 466 |
+| 22 | `Huawei_Wearable` | `wearable` | 466 x 466 |
+| 23 | `Huawei_Wearable` | `wearable` | 466 x 466 |
+| 23 | `Huawei_Wearable_Kids` | `wearablekid` | 480 x 408 |
+| 24 | `Huawei_Wearable` | `wearable` | 466 x 466 |
+
+本机当前只有 `phone_all_arm` 系统镜像，尚未下载 `wearable`/`watch` 系统镜像。推荐在 DevEco Studio 内下载：
+
+1. 打开 DevEco Studio。
+2. 打开 `Device Manager`。
+3. 选择 `Local Emulator` / `Local Simulator`，新建虚拟设备。
+4. 选择 `Huawei_Wearable`，API 24，466 x 466。
+5. 让 DevEco Studio 自动下载对应系统镜像并创建虚拟设备。
+
+下载完成后再次运行：
+
+```sh
+bash scripts/check-huawei-watch-emulator.sh
+```
+
+如果脚本能在 `$HOME/Library/Huawei/Sdk/system-image` 下找到 `wearable` 或 `watch` 目录，就说明手表模拟器镜像已落盘。
+
 ## DevEco Studio 设置
 
 1. 打开 DevEco Studio：

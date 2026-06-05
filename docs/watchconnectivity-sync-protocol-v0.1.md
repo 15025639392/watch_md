@@ -101,9 +101,9 @@
 
 Watch 收到后：
 
-1. 如果已有同 `routeId + version + checksum`，直接回 ACK：`alreadyInstalled`。
-2. 如果是新路线，回 ACK：`readyForPayload`。
-3. 如果存储空间不足，回 ACK：`rejected` 并带原因。
+1. 如果已有同 `routeId + version + checksum`，直接回 `syncAck(status=alreadyReceived, action=routeAlreadyInstalled)`。
+2. 如果是新路线，回 `syncAck(status=ok, action=readyForPayload)`。
+3. 如果存储空间不足，回 `syncAck(status=rejected, action=routeManifestRejected)` 并带原因。
 
 ### 2. iPhone 发送 routePayload
 
@@ -130,7 +130,7 @@ Watch 收到后：
 2. 写入临时路线文件。
 3. 校验成功后原子替换为可用路线。
 4. 保留上一次可用路线，直到新路线安装成功。
-5. 回 ACK：`routeInstalled`。
+5. 回 `syncAck`，`status=ok`，`action=routeInstalled`。
 
 ### 3. 路线下发状态
 
@@ -263,7 +263,7 @@ Watch 保存本地完整会话
   -> 发送剩余 trackChunk / trackFile
   -> 发送 eventChunk
   -> iPhone 校验完整性
-  -> iPhone 回 sessionComplete ACK
+  -> iPhone 回 syncAck(status=ok, action=sessionComplete)
   -> Watch 标记 synced
 ```
 
@@ -286,7 +286,7 @@ Watch 保存本地完整会话
 5. checksum 是否匹配。
 6. 对应路线版本是否存在。
 
-如果缺数据，iPhone 发送 `missingRangeRequest`。
+如果缺数据，iPhone 回 `syncAck(status=missingData, action=missingRangesRequested)`，并在 `missingRanges` 中带缺失 sequence 范围。
 
 ## ACK 协议
 
@@ -300,6 +300,7 @@ ACK 也是 `SyncEnvelope`。
 | `ackForEnvelopeId` | 被确认的 envelope |
 | `entityId` | routeId 或 sessionId |
 | `status` | `ok`、`alreadyReceived`、`rejected`、`checksumFailed`、`missingData` |
+| `action` | ACK 对应的动作，完整枚举见下方“MVP 最小协议”和数据模型 |
 | `receivedRanges` | 已接收 sequence 范围，可选 |
 | `missingRanges` | 缺失 sequence 范围，可选 |
 | `reason` | 失败原因，可选 |
@@ -360,12 +361,12 @@ iPhone 行为：
 
 | 错误 | 处理 |
 | --- | --- |
-| checksum 失败 | 丢弃 payload，请求重发 |
-| route payload 安装失败 | 保留旧路线，回 `rejected` |
-| Watch 存储不足 | 拒绝新路线或提示清理旧记录 |
-| iPhone 缺路线版本 | 接收会话，但标记路线缺失，请求补路线 |
-| track chunk 缺口 | 请求 `missingRangeRequest` |
-| 重复 chunk | 回 `alreadyReceived` |
+| checksum 失败 | 丢弃 payload，回 `syncAck(status=checksumFailed, action=payloadChecksumFailed)` |
+| route payload 安装失败 | 保留旧路线，回 `syncAck(status=rejected, action=routePayloadRejected)` |
+| Watch 存储不足 | 拒绝新路线，回 `syncAck(status=rejected, action=routeManifestRejected)` 并带原因 |
+| iPhone 缺路线版本 | 接收会话，但标记路线缺失，回 `syncAck(status=missingData, action=routeBackfillRequested)` |
+| track chunk 缺口 | 回 `syncAck(status=missingData, action=missingRangesRequested)`，在 `missingRanges` 中带缺失 sequence 范围 |
+| 重复 chunk | 回 `syncAck(status=alreadyReceived, action=trackChunkReceived)` |
 | ACK 丢失 | 发送端重试，接收端幂等处理 |
 
 ## 同步状态 UI
@@ -404,16 +405,29 @@ iPhone 行为：
 
 1. `routeManifest`
 2. `routePayload`
-3. `routeInstalled ACK`
+3. `syncAck`
 4. `sessionStatus`
 5. `trackChunk`
 6. `eventChunk`
 7. `sessionSummary`
-8. `sessionComplete ACK`
+
+MVP 中 `syncAck` 至少覆盖这些动作：
+
+1. `routeAlreadyInstalled`
+2. `readyForPayload`
+3. `routeManifestRejected`
+4. `routeInstalled`
+5. `trackChunkReceived`
+6. `eventChunkReceived`
+7. `missingRangesRequested`
+8. `routeBackfillRequested`
+9. `payloadChecksumFailed`
+10. `routePayloadRejected`
+11. `sessionComplete`
 
 暂缓：
 
-1. `missingRangeRequest` 的复杂 UI。
+1. 缺口补传的复杂 UI。
 2. 多路线并发同步。
 3. 多 Watch 设备。
 4. 云同步。

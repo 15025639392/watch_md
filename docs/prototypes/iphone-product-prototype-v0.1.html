@@ -7,25 +7,34 @@
   <style>
     :root {
       color-scheme: light;
-      --bg: #f5f7f8;
-      --ink: #182026;
-      --muted: #69747c;
-      --line: #d7dde1;
+      --bg: #f2f2f7;
+      --ink: #111111;
+      --muted: #6e6e73;
+      --line: #d1d1d6;
       --panel: #ffffff;
-      --map: #dce8e3;
-      --route: #1f9d55;
-      --track: #2677d9;
-      --warn: #df4d3f;
-      --amber: #d98b12;
-      --soft: #eef3f5;
-      --dark: #10161b;
+      --map: #e6efe8;
+      --route: #34c759;
+      --track: #007aff;
+      --warn: #ff3b30;
+      --amber: #ff9500;
+      --soft: #e5e5ea;
+      --dark: #007aff;
+      --ios-blue: #007aff;
+      --ios-green: #34c759;
+      --ios-red: #ff3b30;
+      --ios-orange: #ff9500;
+      --ios-fill: #f2f2f7;
+      --ios-secondary-fill: #e5e5ea;
+      --ios-tertiary-fill: #f9f9fb;
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      background: var(--bg);
+      background:
+        linear-gradient(180deg, #ffffff 0, var(--bg) 260px),
+        var(--bg);
       color: var(--ink);
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
       letter-spacing: 0;
@@ -84,8 +93,8 @@
       align-items: center;
       justify-content: center;
       padding: 9px 10px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
+      border: 0;
+      border-radius: 999px;
       background: var(--panel);
       color: var(--muted);
       font-size: 12px;
@@ -133,7 +142,7 @@
       padding: 12px;
       border-radius: 42px;
       background: linear-gradient(145deg, #242b31, #07090b 58%, #303840);
-      box-shadow: 0 22px 56px rgba(25, 35, 43, 0.2), inset 0 0 0 2px rgba(255, 255, 255, 0.08);
+      box-shadow: 0 22px 56px rgba(25, 35, 43, 0.18), inset 0 0 0 2px rgba(255, 255, 255, 0.08);
     }
 
     .screen {
@@ -141,8 +150,31 @@
       height: 626px;
       overflow: hidden;
       border-radius: 32px;
-      background: #fbfcfc;
+      background: var(--ios-fill);
       box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+    }
+
+    .screen::before {
+      content: "9:41";
+      position: absolute;
+      z-index: 7;
+      top: 13px;
+      left: 23px;
+      color: #111;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .screen::after {
+      content: "▮▮  ◒";
+      position: absolute;
+      z-index: 7;
+      top: 13px;
+      right: 20px;
+      color: #111;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
     }
 
     .island {
@@ -159,10 +191,10 @@
 
     .app {
       height: 100%;
-      padding: 45px 16px 16px;
+      padding: 53px 14px 12px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
     .nav {
@@ -170,11 +202,12 @@
       align-items: center;
       justify-content: space-between;
       min-height: 28px;
+      padding: 0 2px 2px;
     }
 
     .nav h2 {
       margin: 0;
-      font-size: 24px;
+      font-size: 28px;
       line-height: 1.1;
       font-weight: 760;
     }
@@ -183,13 +216,13 @@
     .tab {
       display: grid;
       place-items: center;
-      width: 32px;
-      height: 32px;
-      border: 1px solid var(--line);
+      width: 30px;
+      height: 30px;
+      border: 0;
       border-radius: 50%;
-      background: var(--panel);
-      color: var(--ink);
-      font-size: 18px;
+      background: transparent;
+      color: var(--ios-blue);
+      font-size: 20px;
       font-weight: 650;
     }
 
@@ -205,8 +238,8 @@
       align-items: center;
       gap: 8px;
       padding: 0 12px;
-      border-radius: 8px;
-      background: var(--soft);
+      border-radius: 10px;
+      background: var(--ios-secondary-fill);
       color: var(--muted);
       font-size: 12px;
     }
@@ -216,13 +249,13 @@
       grid-template-columns: repeat(3, 1fr);
       gap: 6px;
       padding: 4px;
-      border-radius: 10px;
-      background: var(--soft);
+      border-radius: 9px;
+      background: var(--ios-secondary-fill);
     }
 
     .tabs span {
       padding: 7px 4px;
-      border-radius: 8px;
+      border-radius: 7px;
       color: var(--muted);
       font-size: 11px;
       text-align: center;
@@ -231,12 +264,15 @@
     .tabs .active {
       background: var(--panel);
       color: var(--ink);
-      box-shadow: 0 1px 4px rgba(20, 30, 38, 0.1);
+      box-shadow: 0 1px 3px rgba(20, 30, 38, 0.14);
     }
 
     .list {
       display: grid;
       gap: 10px;
+      overflow: hidden;
+      border-radius: 12px;
+      background: var(--panel);
     }
 
     .route-card,
@@ -244,8 +280,8 @@
     .metric-card,
     .event,
     .import-box {
-      border: 1px solid var(--line);
-      border-radius: 8px;
+      border: 0;
+      border-radius: 0;
       background: var(--panel);
     }
 
@@ -255,7 +291,10 @@
       gap: 10px;
       padding: 10px;
       min-height: 104px;
+      border-bottom: 1px solid var(--line);
     }
+
+    .route-card:last-child { border-bottom: 0; }
 
     .thumb {
       position: relative;
@@ -268,7 +307,7 @@
       position: relative;
       overflow: hidden;
       min-height: 188px;
-      border-radius: 8px;
+      border-radius: 10px;
       background:
         linear-gradient(28deg, transparent 45%, rgba(65, 110, 95, 0.13) 46%, transparent 47%),
         linear-gradient(145deg, transparent 42%, rgba(65, 110, 95, 0.12) 43%, transparent 44%),
@@ -285,12 +324,21 @@
       height: 100%;
     }
 
+    .svg-defs {
+      position: absolute;
+      width: 0;
+      height: 0;
+      overflow: hidden;
+    }
+
     .route-line {
       fill: none;
       stroke: var(--route);
       stroke-width: 7;
       stroke-linecap: round;
       stroke-linejoin: round;
+      marker-mid: url(#iphone-route-arrow);
+      marker-end: url(#iphone-route-arrow);
     }
 
     .track-line {
@@ -300,6 +348,8 @@
       stroke-linecap: round;
       stroke-linejoin: round;
       opacity: 0.82;
+      marker-mid: url(#iphone-track-arrow);
+      marker-end: url(#iphone-track-arrow);
     }
 
     .off-line {
@@ -317,15 +367,15 @@
       width: 22px;
       height: 22px;
       border-radius: 50%;
-      background: var(--route);
+      background: var(--ios-green);
       color: #fff;
       font-size: 11px;
       font-weight: 800;
       box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.86);
     }
 
-    .pin.end { background: var(--amber); }
-    .pin.warn { background: var(--warn); }
+    .pin.end { background: var(--ios-orange); }
+    .pin.warn { background: var(--ios-red); }
 
     .copy {
       display: grid;
@@ -360,21 +410,21 @@
       width: fit-content;
       padding: 4px 7px;
       border-radius: 999px;
-      background: #e7f4eb;
-      color: #126d36;
+      background: rgba(52, 199, 89, 0.14);
+      color: #1b7f37;
       font-size: 10px;
       font-weight: 680;
       white-space: nowrap;
     }
 
     .pill.warn {
-      background: #fff3dd;
-      color: #8a570c;
+      background: rgba(255, 149, 0, 0.14);
+      color: #9a5a00;
     }
 
     .pill.bad {
-      background: #ffe8e5;
-      color: #a02c22;
+      background: rgba(255, 59, 48, 0.13);
+      color: #b3261e;
     }
 
     .button {
@@ -384,23 +434,24 @@
       justify-content: center;
       gap: 8px;
       padding: 0 14px;
-      border-radius: 10px;
-      background: var(--dark);
+      border-radius: 12px;
+      background: var(--ios-blue);
       color: #fff;
       font-size: 14px;
       font-weight: 720;
     }
 
     .button.secondary {
-      border: 1px solid var(--line);
-      background: var(--panel);
-      color: var(--ink);
+      border: 0;
+      background: rgba(0, 122, 255, 0.1);
+      color: var(--ios-blue);
     }
 
     .panel {
       padding: 12px;
       display: grid;
       gap: 10px;
+      border-radius: 12px;
     }
 
     .panel h3 {
@@ -418,6 +469,8 @@
     .metric-card {
       min-height: 58px;
       padding: 9px;
+      border-radius: 10px;
+      background: var(--ios-tertiary-fill);
     }
 
     .metric-card b {
@@ -450,15 +503,15 @@
       display: grid;
       place-items: center;
       border-radius: 50%;
-      background: #e7f4eb;
-      color: #126d36;
+      background: rgba(52, 199, 89, 0.14);
+      color: #1b7f37;
       font-size: 11px;
       font-weight: 900;
     }
 
     .dot.warn {
-      background: #fff3dd;
-      color: #8a570c;
+      background: rgba(255, 149, 0, 0.14);
+      color: #9a5a00;
     }
 
     .import-box {
@@ -467,8 +520,9 @@
       place-items: center;
       padding: 18px;
       text-align: center;
-      border-style: dashed;
-      background: #f8fafb;
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      background: var(--panel);
     }
 
     .import-box strong {
@@ -501,8 +555,8 @@
       width: 34px;
       height: 34px;
       border-radius: 8px;
-      background: var(--soft);
-      color: var(--route);
+      background: rgba(0, 122, 255, 0.1);
+      color: var(--ios-blue);
       font-weight: 800;
       font-size: 11px;
     }
@@ -512,9 +566,11 @@
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       min-height: 52px;
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      background: rgba(255, 255, 255, 0.94);
+      border: 0;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.08), 0 8px 26px rgba(20, 30, 38, 0.12);
+      backdrop-filter: blur(18px);
       overflow: hidden;
     }
 
@@ -527,7 +583,7 @@
     }
 
     .bottom-tabs b {
-      color: var(--ink);
+      color: var(--ios-blue);
       font-size: 16px;
       line-height: 1;
     }
@@ -540,10 +596,11 @@
       display: grid;
       gap: 9px;
       padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.96);
-      box-shadow: 0 -12px 30px rgba(20, 30, 38, 0.12);
+      border: 0;
+      border-radius: 22px 22px 28px 28px;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 -12px 30px rgba(20, 30, 38, 0.14);
+      backdrop-filter: blur(18px);
     }
 
     .progress {
@@ -557,7 +614,7 @@
       display: block;
       height: 100%;
       border-radius: inherit;
-      background: var(--route);
+      background: var(--ios-blue);
     }
 
     .events {
@@ -572,16 +629,18 @@
       align-items: center;
       min-height: 54px;
       padding: 9px;
+      border-radius: 10px;
+      background: var(--ios-tertiary-fill);
     }
 
     .bar {
       width: 6px;
       height: 34px;
       border-radius: 999px;
-      background: var(--warn);
+      background: var(--ios-red);
     }
 
-    .bar.pause { background: var(--amber); }
+    .bar.pause { background: var(--ios-orange); }
 
     .chart {
       position: relative;
@@ -616,6 +675,16 @@
   </style>
 </head>
 <body>
+  <svg class="svg-defs" aria-hidden="true" focusable="false">
+    <defs>
+      <marker id="iphone-route-arrow" markerWidth="4.2" markerHeight="4.2" refX="2.8" refY="2.1" orient="auto" markerUnits="strokeWidth">
+        <path d="M0 0 L4.2 2.1 L0 4.2 Z" fill="#ffffff" />
+      </marker>
+      <marker id="iphone-track-arrow" markerWidth="4.2" markerHeight="4.2" refX="2.8" refY="2.1" orient="auto" markerUnits="strokeWidth">
+        <path d="M0 0 L4.2 2.1 L0 4.2 Z" fill="#ffffff" />
+      </marker>
+    </defs>
+  </svg>
   <main>
     <header>
       <div>
@@ -624,12 +693,12 @@
       </div>
       <div class="brief">
         <b>设计边界</b>
-        <p>MVP 不做路线社区、复杂编辑、多地图源和 iPhone 实时主导航。所有“开始徒步”动作都回到 Watch，iPhone 只表达准备是否完成。</p>
+        <p>MVP 可从远端接口获取官方路线目录，但不做路线社区、复杂编辑、多地图源和 iPhone 实时主导航。所有“开始徒步”动作都回到 Watch。</p>
       </div>
     </header>
 
     <div class="flow">
-      <span>路线列表</span>
+      <span>远端路线列表</span>
       <span>GPX 导入</span>
       <span>路线详情</span>
       <span>同步状态</span>
@@ -650,10 +719,10 @@
                   <div class="icon-btn">＋</div>
                 </div>
               </div>
-              <div class="search">⌕ 搜索路线、起点或文件名</div>
+              <div class="search">⌕ 搜索路线名称、编号或区域</div>
               <div class="tabs">
-                <span class="active">本地路线</span>
-                <span>最近</span>
+                <span class="active">远端路线</span>
+                <span>本地</span>
                 <span>已同步</span>
               </div>
               <div class="list">
@@ -666,8 +735,8 @@
                   <div class="copy">
                     <div class="title">龙井山脊小环线</div>
                     <div class="meta-row"><span>8.6 km</span><span>爬升 520 m</span></div>
-                    <div class="meta-row"><span>预计 3h 20m</span><span>转向 18</span></div>
-                    <span class="pill">Watch 已就绪</span>
+                    <div class="meta-row"><span>西湖群山</span><span>官方路线</span></div>
+                    <span class="pill warn">未下载</span>
                   </div>
                 </div>
                 <div class="route-card">
@@ -677,8 +746,8 @@
                   <div class="copy">
                     <div class="title">九溪十八涧回程线</div>
                     <div class="meta-row"><span>12.4 km</span><span>爬升 740 m</span></div>
-                    <div class="meta-row"><span>点数 1,842</span><span>转向 31</span></div>
-                    <span class="pill warn">等待同步</span>
+                    <div class="meta-row"><span>九溪区域</span><span>2026-06 更新</span></div>
+                    <span class="pill">已下载</span>
                   </div>
                 </div>
                 <div class="route-card">
@@ -688,11 +757,12 @@
                   <div class="copy">
                     <div class="title">北高峰夜爬线</div>
                     <div class="meta-row"><span>5.2 km</span><span>爬升 430 m</span></div>
-                    <div class="meta-row"><span>预计 2h 10m</span><span>转向 12</span></div>
-                    <span class="pill bad">路线较粗略</span>
+                    <div class="meta-row"><span>北高峰</span><span>点距需确认</span></div>
+                    <span class="pill bad">需复核</span>
                   </div>
                 </div>
               </div>
+              <div class="button secondary">导入本地 GPX</div>
               <div class="bottom-tabs">
                 <div><b>⌂</b>路线</div>
                 <div><b>◷</b>历史</div>
@@ -702,8 +772,8 @@
           </div>
         </div>
         <div class="caption">
-          <strong>01 路线列表</strong>
-          <span>用户先找到可走路线，列表突出距离、爬升、预计耗时、路线质量和 Watch 同步状态。</span>
+          <strong>01 远端路线列表</strong>
+          <span>iPhone 默认从远端接口拉取路线摘要，突出距离、爬升、区域、路线质量和本地下载状态。</span>
         </div>
       </article>
 
@@ -847,13 +917,13 @@
                 <h2>进行中</h2>
                 <div class="icon-btn">↻</div>
               </div>
-              <div class="panel" style="background:#10161b;color:#fff;border-color:#10161b;">
-                <div class="small-row" style="color:#b8c1c8;"><span>Apple Watch 正在记录</span><span>刚刚同步</span></div>
+              <div class="panel" style="background:linear-gradient(180deg,#0a84ff,#007aff);color:#fff;">
+                <div class="small-row" style="color:rgba(255,255,255,0.78);"><span>Apple Watch 正在记录</span><span>刚刚同步</span></div>
                 <div class="title" style="font-size:20px;color:#fff;">龙井山脊小环线</div>
                 <div class="metrics">
-                  <div class="metric-card" style="background:#1d252c;border-color:#313b43;"><b>4.1</b><span>已走 km</span></div>
-                  <div class="metric-card" style="background:#1d252c;border-color:#313b43;"><b>1:28</b><span>用时</span></div>
-                  <div class="metric-card" style="background:#1d252c;border-color:#313b43;"><b>62%</b><span>Watch 电量</span></div>
+                  <div class="metric-card" style="background:rgba(255,255,255,0.18);color:#fff;"><b>4.1</b><span style="color:rgba(255,255,255,0.72);">已走 km</span></div>
+                  <div class="metric-card" style="background:rgba(255,255,255,0.18);color:#fff;"><b>1:28</b><span style="color:rgba(255,255,255,0.72);">用时</span></div>
+                  <div class="metric-card" style="background:rgba(255,255,255,0.18);color:#fff;"><b>62%</b><span style="color:rgba(255,255,255,0.72);">Watch 电量</span></div>
                 </div>
               </div>
               <div class="map" style="min-height:180px;">

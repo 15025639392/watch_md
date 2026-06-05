@@ -21,6 +21,7 @@
 | `HikingRoute` | 一条计划路线 | iPhone | iPhone / Watch |
 | `RoutePoint` | 计划路线上的点 | iPhone | iPhone / Watch |
 | `RouteVariant` | 原始路线或简化路线 | iPhone | iPhone / Watch |
+| `RemoteRouteSummary` | 远端路线列表摘要 | 服务端 | iPhone |
 | `Waypoint` | 用户或 GPX 提供的关键点 | iPhone | iPhone / Watch |
 | `TurnPoint` | 从路线几何中生成的转向点 | iPhone | Watch |
 | `HikingSession` | 一次实际徒步会话 | Watch | Watch / iPhone |
@@ -31,14 +32,17 @@
 
 ## HikingRoute
 
-表示一条计划路线。它可以来自 GPX 导入，也可以来自未来的路线创建器。
+表示一条计划路线。它可以来自远端路线接口、GPX 导入，也可以来自未来的路线创建器。
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
 | `routeId` | UUID/String | 是 | 路线稳定 ID |
 | `version` | Int | 是 | 路线版本，每次路线内容变化递增 |
 | `name` | String | 是 | 路线名称 |
-| `source` | Enum | 是 | `gpxImport`、`manual`、`shared`、`watchRemoteFetch` 等 |
+| `source` | Enum | 是 | `remoteCatalog`、`gpxImport`、`manual`、`shared`、`watchRemoteFetch` 等 |
+| `remoteRouteId` | String? | 否 | 远端路线 ID，本地导入路线为空 |
+| `remoteVersion` | String/Int? | 否 | 服务端路线版本，用于判断是否有更新 |
+| `sourceProvider` | String? | 否 | 远端来源标识，例如自有服务端 |
 | `createdAt` | Date | 是 | 创建时间 |
 | `updatedAt` | Date | 是 | 更新时间 |
 | `distanceMeters` | Double | 是 | 计划路线距离 |
@@ -58,7 +62,36 @@
 1. `HikingRoute` 保存摘要和元数据，不直接塞入大量点。
 2. 大量点放在 `RouteVariant` 中，方便按需同步。
 3. `routeId + version` 用于判断 Watch 上路线是否过期。
-4. `watchRemoteFetch` 仅表示 Watch 按用户已知路线编号、短码或精确名称远程获取指定路线，不表示路线推荐、附近路线发现或路线社区。
+4. `remoteCatalog` 表示 iPhone 从远端路线目录获取并保存的路线，不表示路线社区、附近路线发现或 AI 推荐。
+5. `watchRemoteFetch` 仅表示 Watch 按用户已知路线编号、短码或精确名称远程获取指定路线，不表示路线推荐、附近路线发现或路线社区。
+
+## RemoteRouteSummary
+
+表示 iPhone 从远端接口获取的路线列表项。它只用于列表展示、搜索结果和判断本地缓存状态，不包含完整路线点序列。
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `remoteRouteId` | String | 是 | 服务端路线 ID |
+| `remoteVersion` | String/Int | 是 | 服务端路线版本 |
+| `name` | String | 是 | 路线名称 |
+| `regionName` | String? | 否 | 区域、山系或城市名称 |
+| `distanceMeters` | Double | 是 | 计划路线距离 |
+| `ascentMeters` | Double? | 否 | 累计爬升 |
+| `estimatedDurationSeconds` | Int? | 否 | 预计耗时 |
+| `bounds` | GeoBounds? | 否 | 预览地图可用范围 |
+| `startName` | String? | 否 | 起点名称 |
+| `endName` | String? | 否 | 终点名称 |
+| `qualityStatus` | Enum | 是 | `normal`、`sparsePoints`、`missingElevation`、`needsReview` |
+| `updatedAt` | Date | 是 | 远端更新时间 |
+| `checksum` | String | 是 | 摘要或详情校验 |
+| `localStatus` | Enum | 是 | `notDownloaded`、`downloaded`、`hasUpdate`、`syncedToWatch` |
+
+### 获取原则
+
+1. 列表接口只返回 `RemoteRouteSummary`，完整路线点在详情接口中按需下载。
+2. 下载详情后生成本地 `HikingRoute(source=remoteCatalog)` 和对应 `RouteVariant`。
+3. 如果远端版本更新，iPhone 标记 `hasUpdate`，用户确认后再更新本地路线，避免覆盖已用于历史会话的路线版本。
+4. 远端列表能力不包含用户发布、评论、点赞、关注、个性化推荐或附近路线发现。
 
 ## RouteVariant
 
@@ -176,6 +209,8 @@ paused -> finished
 1. `finished` 后不再追加轨迹点，只能补同步。
 2. `abandoned` 用于用户明确丢弃记录。
 3. App 崩溃或 Watch 重启后，通过 `active` 或 `paused` 状态恢复。
+4. MVP 允许 Watch 在没有计划路线时创建自由记录会话。当前实现可使用内部占位 `routeId` 标记自由记录；后续数据模型可演进为 `routeId` / `routeVersion` 可空并增加 `sessionMode = plannedRoute | freeRecording`。
+5. 自由记录会话不产生路线投影、偏航和转向事件。
 
 ## TrackPoint
 
@@ -205,6 +240,7 @@ paused -> finished
 2. 低电量时可以降低采样频率。
 3. 暂停期间默认不写正式轨迹点，可保留低频定位点作为非正式点。
 4. 定位精度太差的点可以标记或丢弃，不能直接触发偏航。
+5. 自由记录模式下，`nearestRouteDistanceMeters` 和 `routeProgressMeters` 保持为空。
 
 ## SessionEvent
 
@@ -239,6 +275,10 @@ paused -> finished
 | `lowBattery` | 低电量 |
 | `appRecovered` | App 恢复会话 |
 | `syncFailed` | 同步失败 |
+
+### MVP 事件边界
+
+MVP 记录 `lowBattery` 事件即可。`batteryModeChanged` 可作为后续事件类型，用于记录标准、节能、低电量和极低电量模式之间的自动或手动切换；首版不要求实现。
 
 ### payload 示例
 
@@ -297,8 +337,20 @@ paused -> finished
 | `createdAt` | Date | 是 | 创建时间 |
 | `sender` | Enum | 是 | `iphone` 或 `watch` |
 | `kind` | Enum | 是 | 封包类型 |
+| `entityId` | UUID/String | 是 | 关联对象 ID，例如 `routeId` 或 `sessionId` |
+| `entityVersion` | Int? | 否 | 路线版本或会话修订号 |
+| `sequence` | Int? | 否 | chunk 顺序，非 chunk 消息可为空 |
+| `isFinal` | Bool | 是 | 是否为最后一个 chunk；非 chunk 消息默认为 true |
 | `payloadChecksum` | String | 是 | payload 校验 |
 | `payload` | Object | 是 | 具体数据 |
+
+### 幂等规则
+
+1. 接收端以 `envelopeId` 去重。
+2. 对 chunk 类数据，以 `entityId + kind + sequence` 去重。
+3. 对路线，以 `routeId + routeVersion + checksum` 判断是否已安装。
+4. 对轨迹点，以 `sessionId + TrackPoint.sequence` 去重。
+5. 对事件，以 `eventId` 去重。
 
 ### 封包类型
 
@@ -311,6 +363,21 @@ paused -> finished
 | `eventChunk` | Watch -> iPhone | 增量事件 |
 | `sessionSummary` | Watch -> iPhone | 会话摘要 |
 | `syncAck` | 双向 | 同步确认 |
+
+### syncAck payload
+
+`syncAck` 也使用 `SyncEnvelope`，其中 `payload` 至少包含：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `ackId` | UUID/String | 是 | ACK ID |
+| `ackForEnvelopeId` | UUID/String | 是 | 被确认的 envelope ID |
+| `entityId` | UUID/String | 是 | `routeId` 或 `sessionId` |
+| `status` | Enum | 是 | `ok`、`alreadyReceived`、`rejected`、`checksumFailed`、`missingData` |
+| `action` | Enum | 是 | `routeAlreadyInstalled`、`readyForPayload`、`routeManifestRejected`、`routeInstalled`、`trackChunkReceived`、`eventChunkReceived`、`missingRangesRequested`、`routeBackfillRequested`、`payloadChecksumFailed`、`routePayloadRejected`、`sessionComplete` |
+| `receivedRanges` | Array? | 否 | 已接收 sequence 范围 |
+| `missingRanges` | Array? | 否 | 缺失 sequence 范围 |
+| `reason` | String? | 否 | 失败或拒绝原因 |
 
 ## 地理基础类型
 
@@ -360,6 +427,8 @@ paused -> finished
 7. `trackPoints`
 8. `events`
 9. `summary`
+
+无路线自由记录会话仍写入上述会话、轨迹、事件和摘要对象；其中 `routeId` / `routeVersion` 在当前实现中可指向内部占位路线，iPhone 复盘时应按自由记录识别，不要求存在真实计划路线。
 
 ### iPhone 复盘
 

@@ -2,17 +2,24 @@
 
 面向徒步户外 App 的手表端产品、技术与设备支持研究文档库。
 
-当前重点是验证一个以 Apple Watch 为首发平台的徒步导航 MVP：iPhone 负责路线导入、路线管理、路线同步和复盘，Apple Watch 负责腕上地图、路线跟随、偏航提醒、轨迹记录和结束后回传。
+当前重点是验证一个以 Apple Watch 为首发平台的徒步导航 MVP：iPhone 负责远端路线列表、路线导入、路线管理、路线同步和复盘，Apple Watch 负责腕上地图、路线跟随、偏航提醒、轨迹记录和结束后回传。
 
 仓库同时保留华为手表、Wear OS、Garmin、Suunto、COROS 等平台的开发支持调研，用于后续平台路线图判断。
+
+## App 工程
+
+- [Apple Watch 徒步 App 工程骨架](./watch-hiking-app/README.md)
+
+当前工程目录为 `watch-hiking-app/`。Slice 1 已建立 Swift Package 核心包、iPhone/Watch SwiftUI 源码骨架、GPX fixture 和单元测试；真实服务端路线搜索/详情接口、Xcode app target、WatchConnectivity、Core Location、HKWorkoutSession 和 MapKit 真机验证仍按后续 slice 接入。
 
 ## 当前结论
 
 1. MVP 优先选择 Apple Watch / watchOS，因为第三方开发能力、HealthKit、WatchConnectivity、后台运动和手机-手表协同路径最明确。
 2. 徒步场景优先级是路线可靠、定位不断、偏航能提醒、轨迹不丢、结束能同步。
 3. 第一版暂不做 Android、Wear OS、华为手表、路线社区、复杂路线编辑、多地图源、专业等高线地图和订阅体系。
-4. Watch 端按用户已知路线编号、短码或精确名称远程获取指定 GPX 路线，作为 MVP 后续计划；它不是路线推荐、附近路线发现或路线社区。
-5. 华为手表具备后续验证价值，但要按手机生态、系统版本、地区、机型和上架路径逐项确认。
+4. iPhone 可通过远端接口获取官方/运营维护的路线列表，并下载指定路线详情后同步到 Watch；它不是路线社区、附近路线发现或 AI 推荐。
+5. Watch 端按用户已知路线编号、短码或精确名称远程获取指定 GPX 路线，作为 MVP 后续计划；它不是路线推荐、附近路线发现或路线社区。
+6. 华为手表具备后续验证价值，但要按手机生态、系统版本、地区、机型和上架路径逐项确认。
 
 ## 文档索引
 

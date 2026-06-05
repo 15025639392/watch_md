@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="WatchHikingAppTests">
+  <trk>
+    <name>Sample Ridge</name>
+    <trkseg>
+      <trkpt lat="37.804400" lon="-122.477600"><ele>12</ele><time>2026-06-05T01:00:00Z</time></trkpt>
+      <trkpt lat="37.805000" lon="-122.475800"><ele>18</ele><time>2026-06-05T01:00:05Z</time></trkpt>
+      <trkpt lat="37.806200" lon="-122.474000"><ele>31</ele><time>2026-06-05T01:00:10Z</time></trkpt>
+      <trkpt lat="37.807400" lon="-122.474500"><ele>45</ele><time>2026-06-05T01:00:15Z</time></trkpt>
+      <trkpt lat="37.808600" lon="-122.476400"><ele>58</ele><time>2026-06-05T01:00:20Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>
