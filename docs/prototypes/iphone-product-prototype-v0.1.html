@@ -1,0 +1,942 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>iPhone 徒步 App 产品原型 v0.1</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7f8;
+      --ink: #182026;
+      --muted: #69747c;
+      --line: #d7dde1;
+      --panel: #ffffff;
+      --map: #dce8e3;
+      --route: #1f9d55;
+      --track: #2677d9;
+      --warn: #df4d3f;
+      --amber: #d98b12;
+      --soft: #eef3f5;
+      --dark: #10161b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+      letter-spacing: 0;
+    }
+
+    main {
+      width: min(1280px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 34px 0 48px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
+      gap: 28px;
+      align-items: end;
+      margin-bottom: 28px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(30px, 4vw, 56px);
+      line-height: 1.05;
+      font-weight: 780;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .brief {
+      padding-left: 20px;
+      border-left: 1px solid var(--line);
+    }
+
+    .brief b {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+      margin: 0 0 24px;
+    }
+
+    .flow span {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(300px, 1fr));
+      gap: 28px 24px;
+      align-items: start;
+    }
+
+    .prototype {
+      display: grid;
+      justify-items: center;
+      gap: 12px;
+    }
+
+    .caption {
+      width: min(100%, 330px);
+      min-height: 78px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .caption strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    .caption span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .phone {
+      width: 312px;
+      height: 650px;
+      padding: 12px;
+      border-radius: 42px;
+      background: linear-gradient(145deg, #242b31, #07090b 58%, #303840);
+      box-shadow: 0 22px 56px rgba(25, 35, 43, 0.2), inset 0 0 0 2px rgba(255, 255, 255, 0.08);
+    }
+
+    .screen {
+      position: relative;
+      height: 626px;
+      overflow: hidden;
+      border-radius: 32px;
+      background: #fbfcfc;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+    }
+
+    .island {
+      position: absolute;
+      z-index: 6;
+      top: 10px;
+      left: 50%;
+      width: 92px;
+      height: 24px;
+      border-radius: 20px;
+      transform: translateX(-50%);
+      background: #0b0c0d;
+    }
+
+    .app {
+      height: 100%;
+      padding: 45px 16px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 28px;
+    }
+
+    .nav h2 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.1;
+      font-weight: 760;
+    }
+
+    .icon-btn,
+    .tab {
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: var(--panel);
+      color: var(--ink);
+      font-size: 18px;
+      font-weight: 650;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .search {
+      height: 36px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      border-radius: 8px;
+      background: var(--soft);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      padding: 4px;
+      border-radius: 10px;
+      background: var(--soft);
+    }
+
+    .tabs span {
+      padding: 7px 4px;
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .tabs .active {
+      background: var(--panel);
+      color: var(--ink);
+      box-shadow: 0 1px 4px rgba(20, 30, 38, 0.1);
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .route-card,
+    .panel,
+    .metric-card,
+    .event,
+    .import-box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .route-card {
+      display: grid;
+      grid-template-columns: 86px 1fr;
+      gap: 10px;
+      padding: 10px;
+      min-height: 104px;
+    }
+
+    .thumb {
+      position: relative;
+      overflow: hidden;
+      border-radius: 8px;
+      background: var(--map);
+    }
+
+    .map {
+      position: relative;
+      overflow: hidden;
+      min-height: 188px;
+      border-radius: 8px;
+      background:
+        linear-gradient(28deg, transparent 45%, rgba(65, 110, 95, 0.13) 46%, transparent 47%),
+        linear-gradient(145deg, transparent 42%, rgba(65, 110, 95, 0.12) 43%, transparent 44%),
+        linear-gradient(90deg, rgba(20, 60, 50, 0.08) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(20, 60, 50, 0.07) 1px, transparent 1px),
+        var(--map);
+      background-size: auto, auto, 34px 34px, 34px 34px, auto;
+    }
+
+    svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .route-line {
+      fill: none;
+      stroke: var(--route);
+      stroke-width: 7;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .track-line {
+      fill: none;
+      stroke: var(--track);
+      stroke-width: 5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 0.82;
+    }
+
+    .off-line {
+      fill: none;
+      stroke: var(--warn);
+      stroke-width: 8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .pin {
+      position: absolute;
+      display: grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--route);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.86);
+    }
+
+    .pin.end { background: var(--amber); }
+    .pin.warn { background: var(--warn); }
+
+    .copy {
+      display: grid;
+      align-content: start;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    .title {
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.25;
+      font-weight: 720;
+    }
+
+    .meta-row,
+    .status-row,
+    .small-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      width: fit-content;
+      padding: 4px 7px;
+      border-radius: 999px;
+      background: #e7f4eb;
+      color: #126d36;
+      font-size: 10px;
+      font-weight: 680;
+      white-space: nowrap;
+    }
+
+    .pill.warn {
+      background: #fff3dd;
+      color: #8a570c;
+    }
+
+    .pill.bad {
+      background: #ffe8e5;
+      color: #a02c22;
+    }
+
+    .button {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 14px;
+      border-radius: 10px;
+      background: var(--dark);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 720;
+    }
+
+    .button.secondary {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--ink);
+    }
+
+    .panel {
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .panel h3 {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .metric-card {
+      min-height: 58px;
+      padding: 9px;
+    }
+
+    .metric-card b {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 16px;
+    }
+
+    .metric-card span {
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .checks {
+      display: grid;
+      gap: 8px;
+    }
+
+    .check {
+      display: grid;
+      grid-template-columns: 20px 1fr auto;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .dot {
+      width: 18px;
+      height: 18px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #e7f4eb;
+      color: #126d36;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .dot.warn {
+      background: #fff3dd;
+      color: #8a570c;
+    }
+
+    .import-box {
+      min-height: 154px;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      text-align: center;
+      border-style: dashed;
+      background: #f8fafb;
+    }
+
+    .import-box strong {
+      display: block;
+      margin: 10px 0 6px;
+      font-size: 16px;
+    }
+
+    .import-box span,
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .file-row {
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      gap: 9px;
+      align-items: center;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .file-row:last-child { border-bottom: 0; }
+
+    .file-icon {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: var(--soft);
+      color: var(--route);
+      font-weight: 800;
+      font-size: 11px;
+    }
+
+    .bottom-tabs {
+      margin-top: auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      min-height: 52px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.94);
+      overflow: hidden;
+    }
+
+    .bottom-tabs div {
+      display: grid;
+      place-items: center;
+      gap: 2px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .bottom-tabs b {
+      color: var(--ink);
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .sheet {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
+      display: grid;
+      gap: 9px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 -12px 30px rgba(20, 30, 38, 0.12);
+    }
+
+    .progress {
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: var(--soft);
+    }
+
+    .progress i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--route);
+    }
+
+    .events {
+      display: grid;
+      gap: 8px;
+    }
+
+    .event {
+      display: grid;
+      grid-template-columns: 6px 1fr auto;
+      gap: 9px;
+      align-items: center;
+      min-height: 54px;
+      padding: 9px;
+    }
+
+    .bar {
+      width: 6px;
+      height: 34px;
+      border-radius: 999px;
+      background: var(--warn);
+    }
+
+    .bar.pause { background: var(--amber); }
+
+    .chart {
+      position: relative;
+      height: 74px;
+      overflow: hidden;
+      border-radius: 8px;
+      background: var(--soft);
+    }
+
+    .chart::before {
+      content: "";
+      position: absolute;
+      inset: 14px 10px;
+      background:
+        linear-gradient(160deg, transparent 0 24%, rgba(31, 157, 85, 0.62) 25% 28%, transparent 29% 43%, rgba(31, 157, 85, 0.62) 44% 47%, transparent 48% 66%, rgba(31, 157, 85, 0.62) 67% 70%, transparent 71%);
+    }
+
+    @media (max-width: 1040px) {
+      header { grid-template-columns: 1fr; }
+      .brief { padding-left: 0; border-left: 0; }
+      .grid { grid-template-columns: repeat(2, minmax(300px, 1fr)); }
+      .flow { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (max-width: 700px) {
+      main { width: min(100vw - 20px, 360px); padding-top: 24px; }
+      .grid { grid-template-columns: 1fr; }
+      .flow { grid-template-columns: repeat(2, 1fr); }
+      .phone { transform: scale(0.96); transform-origin: top center; }
+      .prototype { margin-bottom: -18px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>iPhone 徒步 App 产品原型 v0.1</h1>
+        <p>iPhone 负责出发前路线准备、Watch 同步和结束后复盘；行进中的主导航仍交给 Apple Watch。这个原型用于讨论信息架构、页面优先级和关键状态，不代表最终视觉稿。</p>
+      </div>
+      <div class="brief">
+        <b>设计边界</b>
+        <p>MVP 不做路线社区、复杂编辑、多地图源和 iPhone 实时主导航。所有“开始徒步”动作都回到 Watch，iPhone 只表达准备是否完成。</p>
+      </div>
+    </header>
+
+    <div class="flow">
+      <span>路线列表</span>
+      <span>GPX 导入</span>
+      <span>路线详情</span>
+      <span>同步状态</span>
+      <span>进行中状态</span>
+      <span>复盘详情</span>
+    </div>
+
+    <section class="grid">
+      <article class="prototype">
+        <div class="phone">
+          <div class="screen">
+            <div class="island"></div>
+            <div class="app">
+              <div class="nav">
+                <h2>路线</h2>
+                <div class="toolbar">
+                  <div class="icon-btn">⌕</div>
+                  <div class="icon-btn">＋</div>
+                </div>
+              </div>
+              <div class="search">⌕ 搜索路线、起点或文件名</div>
+              <div class="tabs">
+                <span class="active">本地路线</span>
+                <span>最近</span>
+                <span>已同步</span>
+              </div>
+              <div class="list">
+                <div class="route-card">
+                  <div class="thumb">
+                    <svg viewBox="0 0 100 100"><path class="route-line" d="M16 76 C25 58 40 66 46 48 C53 26 76 28 85 16"/></svg>
+                    <span class="pin" style="left:12px;bottom:14px;">S</span>
+                    <span class="pin end" style="right:11px;top:10px;">E</span>
+                  </div>
+                  <div class="copy">
+                    <div class="title">龙井山脊小环线</div>
+                    <div class="meta-row"><span>8.6 km</span><span>爬升 520 m</span></div>
+                    <div class="meta-row"><span>预计 3h 20m</span><span>转向 18</span></div>
+                    <span class="pill">Watch 已就绪</span>
+                  </div>
+                </div>
+                <div class="route-card">
+                  <div class="thumb">
+                    <svg viewBox="0 0 100 100"><path class="route-line" d="M12 64 C28 42 36 50 45 34 C55 17 72 36 88 20"/></svg>
+                  </div>
+                  <div class="copy">
+                    <div class="title">九溪十八涧回程线</div>
+                    <div class="meta-row"><span>12.4 km</span><span>爬升 740 m</span></div>
+                    <div class="meta-row"><span>点数 1,842</span><span>转向 31</span></div>
+                    <span class="pill warn">等待同步</span>
+                  </div>
+                </div>
+                <div class="route-card">
+                  <div class="thumb">
+                    <svg viewBox="0 0 100 100"><path class="route-line" d="M10 82 C28 70 24 52 48 50 C68 48 62 24 88 18"/></svg>
+                  </div>
+                  <div class="copy">
+                    <div class="title">北高峰夜爬线</div>
+                    <div class="meta-row"><span>5.2 km</span><span>爬升 430 m</span></div>
+                    <div class="meta-row"><span>预计 2h 10m</span><span>转向 12</span></div>
+                    <span class="pill bad">路线较粗略</span>
+                  </div>
+                </div>
+              </div>
+              <div class="bottom-tabs">
+                <div><b>⌂</b>路线</div>
+                <div><b>◷</b>历史</div>
+                <div><b>⚙</b>设置</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="caption">
+          <strong>01 路线列表</strong>
+          <span>用户先找到可走路线，列表突出距离、爬升、预计耗时、路线质量和 Watch 同步状态。</span>
+        </div>
+      </article>
+
+      <article class="prototype">
+        <div class="phone">
+          <div class="screen">
+            <div class="island"></div>
+            <div class="app">
+              <div class="nav">
+                <div class="icon-btn">‹</div>
+                <h2 style="font-size:22px;">导入 GPX</h2>
+                <div class="icon-btn">?</div>
+              </div>
+              <div class="import-box">
+                <div>
+                  <div style="font-size:34px;">⇪</div>
+                  <strong>选择或拖入 GPX 文件</strong>
+                  <span>导入后会解析路线、海拔、关键点，并生成 Watch 可用简化路线。</span>
+                </div>
+              </div>
+              <div class="panel">
+                <h3>最近文件</h3>
+                <div class="file-row">
+                  <div class="file-icon">GPX</div>
+                  <div class="copy">
+                    <div class="title" style="font-size:13px;">longjing-loop.gpx</div>
+                    <div class="hint">1,842 点 · 含海拔 · 18 转向</div>
+                  </div>
+                  <span class="pill">可用</span>
+                </div>
+                <div class="file-row">
+                  <div class="file-icon">GPX</div>
+                  <div class="copy">
+                    <div class="title" style="font-size:13px;">ridge-old-track.gpx</div>
+                    <div class="hint">126 点 · 无海拔</div>
+                  </div>
+                  <span class="pill warn">需确认</span>
+                </div>
+              </div>
+              <div class="panel">
+                <h3>导入检查</h3>
+                <div class="checks">
+                  <div class="check"><span class="dot">✓</span><span>路线点数量正常</span><span class="hint">1,842</span></div>
+                  <div class="check"><span class="dot">✓</span><span>起终点已识别</span><span class="hint">相距 410m</span></div>
+                  <div class="check"><span class="dot warn">!</span><span>部分路段点间距偏大</span><span class="hint">提示</span></div>
+                </div>
+              </div>
+              <div class="button">导入并查看路线</div>
+            </div>
+          </div>
+        </div>
+        <div class="caption">
+          <strong>02 GPX 导入</strong>
+          <span>导入不是只选文件，还要给出路线质量判断，避免用户出发后才发现偏航提醒不准。</span>
+        </div>
+      </article>
+
+      <article class="prototype">
+        <div class="phone">
+          <div class="screen">
+            <div class="island"></div>
+            <div class="app" style="padding-left:0;padding-right:0;padding-bottom:0;gap:0;">
+              <div class="map" style="min-height:300px;border-radius:0;">
+                <svg viewBox="0 0 280 300">
+                  <path class="route-line" d="M34 248 C58 198 92 214 110 154 C128 94 184 116 218 56"/>
+                </svg>
+                <span class="pin" style="left:28px;bottom:42px;">S</span>
+                <span class="pin end" style="right:54px;top:50px;">E</span>
+                <span class="pin" style="left:130px;top:116px;background:#2f3740;">1</span>
+              </div>
+              <div class="sheet">
+                <div class="small-row"><span class="pill">Watch 已连接 · 电量 78%</span><span>今天 09:42</span></div>
+                <div class="title" style="font-size:20px;">龙井山脊小环线</div>
+                <div class="metrics">
+                  <div class="metric-card"><b>8.6</b><span>公里</span></div>
+                  <div class="metric-card"><b>520</b><span>累计爬升 m</span></div>
+                  <div class="metric-card"><b>3:20</b><span>预计耗时</span></div>
+                </div>
+                <div class="panel" style="padding:0;border:0;">
+                  <div class="status-row"><span>起点</span><strong>龙井村口</strong></div>
+                  <div class="status-row"><span>终点</span><strong>九溪停车场</strong></div>
+                  <div class="status-row"><span>路线质量</span><strong>正常 · 1,842 点 · 18 转向</strong></div>
+                </div>
+                <div class="button">同步到 Watch</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="caption">
+          <strong>03 路线详情</strong>
+          <span>首屏用大地图确认路线，再用摘要回答“能不能走、有没有同步、Watch 是否准备好”。</span>
+        </div>
+      </article>
+
+      <article class="prototype">
+        <div class="phone">
+          <div class="screen">
+            <div class="island"></div>
+            <div class="app">
+              <div class="nav">
+                <div class="icon-btn">‹</div>
+                <h2 style="font-size:22px;">出发准备</h2>
+                <div class="icon-btn">↻</div>
+              </div>
+              <div class="panel">
+                <div class="small-row"><span class="pill">同步中</span><span>路线版本 v12</span></div>
+                <h3>龙井山脊小环线</h3>
+                <div class="progress"><i style="width:68%;"></i></div>
+                <div class="hint">正在向 Watch 发送简化路线、转向点和关键点。</div>
+              </div>
+              <div class="panel">
+                <h3>Watch 准备状态</h3>
+                <div class="checks">
+                  <div class="check"><span class="dot">✓</span><span>Watch 连接</span><span class="hint">已连接</span></div>
+                  <div class="check"><span class="dot">✓</span><span>Watch 电量</span><span class="hint">78%</span></div>
+                  <div class="check"><span class="dot warn">!</span><span>路线同步</span><span class="hint">68%</span></div>
+                  <div class="check"><span class="dot">✓</span><span>定位权限</span><span class="hint">已授权</span></div>
+                  <div class="check"><span class="dot">✓</span><span>HealthKit 权限</span><span class="hint">已授权</span></div>
+                </div>
+              </div>
+              <div class="panel">
+                <h3>下一步</h3>
+                <p class="hint">同步完成后，在 Apple Watch 上打开路线卡片并开始徒步。iPhone 不作为行进中的主导航。</p>
+              </div>
+              <div class="button secondary">等待 Watch 就绪</div>
+            </div>
+          </div>
+        </div>
+        <div class="caption">
+          <strong>04 同步状态</strong>
+          <span>状态必须明确：未同步、同步中、已就绪、失败、Watch 不在线。iPhone 不提供“开始徒步”。</span>
+        </div>
+      </article>
+
+      <article class="prototype">
+        <div class="phone">
+          <div class="screen">
+            <div class="island"></div>
+            <div class="app">
+              <div class="nav">
+                <h2>进行中</h2>
+                <div class="icon-btn">↻</div>
+              </div>
+              <div class="panel" style="background:#10161b;color:#fff;border-color:#10161b;">
+                <div class="small-row" style="color:#b8c1c8;"><span>Apple Watch 正在记录</span><span>刚刚同步</span></div>
+                <div class="title" style="font-size:20px;color:#fff;">龙井山脊小环线</div>
+                <div class="metrics">
+                  <div class="metric-card" style="background:#1d252c;border-color:#313b43;"><b>4.1</b><span>已走 km</span></div>
+                  <div class="metric-card" style="background:#1d252c;border-color:#313b43;"><b>1:28</b><span>用时</span></div>
+                  <div class="metric-card" style="background:#1d252c;border-color:#313b43;"><b>62%</b><span>Watch 电量</span></div>
+                </div>
+              </div>
+              <div class="map" style="min-height:180px;">
+                <svg viewBox="0 0 280 180">
+                  <path class="route-line" d="M34 148 C58 108 88 124 112 76 C136 26 190 48 232 24"/>
+                  <path class="track-line" d="M34 148 C58 108 88 124 112 76"/>
+                </svg>
+                <span class="pin" style="left:104px;top:70px;background:#2677d9;">●</span>
+              </div>
+              <div class="panel">
+                <h3>Watch 最近状态</h3>
+                <div class="checks">
+                  <div class="check"><span class="dot">✓</span><span>路线状态</span><span class="hint">未偏航</span></div>
+                  <div class="check"><span class="dot">✓</span><span>定位状态</span><span class="hint">良好</span></div>
+                  <div class="check"><span class="dot warn">!</span><span>实时同步</span><span class="hint">低频</span></div>
+                </div>
+              </div>
+              <div class="button secondary">查看 Watch 操作提示</div>
+            </div>
+          </div>
+        </div>
+        <div class="caption">
+          <strong>05 进行中状态</strong>
+          <span>只显示 Watch 是否还在记录、最近同步、电量、距离和偏航状态，不把手机变成主导航屏。</span>
+        </div>
+      </article>
+
+      <article class="prototype">
+        <div class="phone">
+          <div class="screen">
+            <div class="island"></div>
+            <div class="app" style="padding-left:0;padding-right:0;padding-bottom:0;gap:0;">
+              <div class="map" style="min-height:280px;border-radius:0;">
+                <svg viewBox="0 0 280 280">
+                  <path class="route-line" d="M34 238 C58 188 92 204 110 144 C128 84 184 106 218 46"/>
+                  <path class="off-line" d="M110 144 C132 128 150 124 164 108"/>
+                  <path class="track-line" d="M34 238 C58 188 92 204 110 144 C132 128 150 124 164 108 C170 122 164 136 152 146 C170 126 196 92 218 46"/>
+                </svg>
+                <span class="pin" style="left:28px;bottom:34px;">S</span>
+                <span class="pin end" style="right:54px;top:40px;">E</span>
+                <span class="pin warn" style="left:154px;top:100px;">!</span>
+              </div>
+              <div class="sheet">
+                <div class="small-row"><span class="pill">同步完成</span><span>2026-06-05</span></div>
+                <div class="title" style="font-size:20px;">龙井山脊小环线</div>
+                <div class="metrics">
+                  <div class="metric-card"><b>8.9</b><span>实际公里</span></div>
+                  <div class="metric-card"><b>3:34</b><span>总用时</span></div>
+                  <div class="metric-card"><b>548</b><span>爬升 m</span></div>
+                </div>
+                <div class="chart"></div>
+                <div class="events">
+                  <div class="event">
+                    <span class="bar"></span>
+                    <div class="copy">
+                      <div class="title" style="font-size:13px;">偏航 1 次</div>
+                      <div class="hint">开始后 42 分钟 · 最大 102m · 持续 6 分钟</div>
+                    </div>
+                    <span class="pill bad">定位</span>
+                  </div>
+                  <div class="event">
+                    <span class="bar pause"></span>
+                    <div class="copy">
+                      <div class="title" style="font-size:13px;">暂停区间</div>
+                      <div class="hint">午休 18 分钟 · 轨迹已保留</div>
+                    </div>
+                    <span class="pill warn">查看</span>
+                  </div>
+                </div>
+                <div class="small-row">
+                  <div class="button secondary" style="flex:1;">导出 GPX</div>
+                  <div class="button" style="flex:1;">分享</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="caption">
+          <strong>06 复盘详情</strong>
+          <span>计划路线、实际轨迹和偏航段叠加展示；复盘重点是轨迹完整、哪里偏离、是否能导出。</span>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
