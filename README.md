@@ -39,6 +39,7 @@
 
 - [徒步路线与会话数据模型](./docs/hiking-data-model-v0.1.md)
 - [WatchConnectivity 同步协议](./docs/watchconnectivity-sync-protocol-v0.1.md)
+- [iOS / watchOS 操作与数据联动规格](./docs/ios-watchos-operation-data-linkage-v0.1.md)
 - [WatchOS 徒步地图页规格](./docs/watchos-map-page-spec-v0.1.md)
 - [偏航检测规则](./docs/off-route-detection-spec-v0.1.md)
 - [徒步会话完整流程](./docs/hiking-session-flow-v0.1.md)
@@ -55,7 +56,7 @@
 1. 先读总体调研，理解为什么首发 Apple Watch。
 2. 再读产品定义，明确端分工、目标用户和 MVP 范围。
 3. 然后读开发切分，按 slice 推进实现。
-4. 开始编码前读数据模型、同步协议、地图页、偏航检测和完整会话流程。
+4. 开始编码前读数据模型、同步协议、iOS / watchOS 操作与数据联动、地图页、偏航检测和完整会话流程。
 5. 需要验证华为路径时，阅读华为开发环境文档并运行自检脚本。
 
 ## 华为开发环境自检

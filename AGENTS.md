@@ -27,6 +27,7 @@
 - `docs/watchos-development-prompt-implementation-plan-v0.1.md`：可复制给 Codex 的开发提示词与实施计划。
 - `docs/hiking-data-model-v0.1.md`：路线、会话、轨迹、事件和同步对象模型。
 - `docs/watchconnectivity-sync-protocol-v0.1.md`：iPhone 与 Apple Watch 的同步协议。
+- `docs/ios-watchos-operation-data-linkage-v0.1.md`：iOS / watchOS 操作分工、页面动作、数据归属和跨端联动。
 - `docs/watchos-map-page-spec-v0.1.md`：Watch 地图页规格。
 - `docs/off-route-detection-spec-v0.1.md`：偏航检测规则。
 - `docs/hiking-session-flow-v0.1.md`：完整徒步会话流程。
