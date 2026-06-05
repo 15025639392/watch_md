@@ -7,20 +7,22 @@
   <style>
     :root {
       color-scheme: dark;
-      --bg: #0b0d10;
-      --panel: #161a1f;
+      --bg: #050506;
+      --panel: #111114;
       --watch: #070809;
-      --screen: #101418;
-      --text: #f3f5f6;
-      --muted: #9aa4ad;
-      --line: #2b333a;
-      --route: #46d36b;
-      --track: #49a7ff;
-      --warn: #ff5a4f;
+      --screen: #000000;
+      --text: #f7f7f8;
+      --muted: #8f8f96;
+      --line: #242428;
+      --route: #30d158;
+      --track: #0a84ff;
+      --warn: #ff453a;
       --amber: #ffbd45;
       --cyan: #5be7d6;
-      --button: #242b31;
-      --danger: #b72d36;
+      --button: #1c1c1e;
+      --danger: #ff453a;
+      --green-soft: rgba(48, 209, 88, 0.16);
+      --row: #1c1c1e;
     }
 
     * {
@@ -29,10 +31,7 @@
 
     body {
       margin: 0;
-      background:
-        radial-gradient(circle at 20% 0%, rgba(70, 211, 107, 0.08), transparent 26rem),
-        radial-gradient(circle at 80% 10%, rgba(73, 167, 255, 0.08), transparent 24rem),
-        var(--bg);
+      background: var(--bg);
       color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
       letter-spacing: 0;
@@ -102,7 +101,7 @@
       padding: 14px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(22, 26, 31, 0.75);
+      background: rgba(17, 17, 20, 0.88);
     }
 
     .caption strong {
@@ -124,7 +123,7 @@
       height: 262px;
       padding: 15px;
       border-radius: 52px;
-      background: linear-gradient(145deg, #252a2d, #050607 55%, #262b2e);
+      background: linear-gradient(145deg, #2b2b2e, #030304 55%, #202124);
       box-shadow: 0 22px 50px rgba(0, 0, 0, 0.45), inset 0 0 0 2px rgba(255, 255, 255, 0.05);
     }
 
@@ -156,9 +155,23 @@
       width: 188px;
       height: 232px;
       overflow: hidden;
-      border-radius: 40px;
+      border-radius: 42px;
       background: var(--screen);
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+
+    .screen::before {
+      content: "";
+      position: absolute;
+      z-index: 20;
+      left: 50%;
+      top: 7px;
+      width: 34px;
+      height: 3px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.18);
+      transform: translateX(-50%);
+      pointer-events: none;
     }
 
     .map {
@@ -169,7 +182,7 @@
         linear-gradient(152deg, transparent 42%, rgba(255, 255, 255, 0.045) 43%, transparent 44%),
         linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px),
         linear-gradient(0deg, rgba(255,255,255,0.025) 1px, transparent 1px),
-        #142027;
+        #111820;
       background-size: auto, auto, 38px 38px, 38px 38px, auto;
     }
 
@@ -309,7 +322,7 @@
       max-width: 164px;
       transform: translateX(-50%);
       border-radius: 999px;
-      background: rgba(5, 7, 9, 0.78);
+      background: rgba(0, 0, 0, 0.74);
       -webkit-backdrop-filter: blur(14px);
       backdrop-filter: blur(14px);
       color: var(--text);
@@ -320,25 +333,25 @@
 
     .top-pill {
       top: 11px;
-      padding: 6px 12px;
+      padding: 7px 13px;
       font-size: 12px;
       font-weight: 720;
     }
 
     .bottom-pill {
       bottom: 12px;
-      padding: 8px 12px;
+      padding: 8px 13px;
       font-size: 12px;
       line-height: 1.15;
     }
 
     .warning {
-      background: rgba(114, 21, 21, 0.88);
+      background: rgba(255, 69, 58, 0.9);
       color: #fff;
     }
 
     .amber {
-      background: rgba(117, 75, 18, 0.88);
+      background: rgba(191, 116, 0, 0.9);
       color: #fff1ce;
     }
 
@@ -347,14 +360,16 @@
       inset: 0;
       display: flex;
       flex-direction: column;
-      padding: 18px 16px;
-      background: #080a0c;
+      padding: 18px 14px 14px;
+      background: #000;
     }
 
     .small-label {
-      color: var(--muted);
+      color: #ff9f0a;
       font-size: 11px;
       line-height: 1.25;
+      font-weight: 680;
+      letter-spacing: 0;
     }
 
     .route-card h3,
@@ -364,40 +379,45 @@
     .finish h3,
     .sync h3 {
       margin: 0 0 6px;
-      font-size: 19px;
+      font-size: 20px;
       line-height: 1.12;
-      font-weight: 740;
+      font-weight: 760;
+    }
+
+    .route-card h3 {
+      max-width: 152px;
+      font-size: 18px;
     }
 
     .route-card {
       justify-content: space-between;
       background:
-        linear-gradient(180deg, rgba(70, 211, 107, 0.11), transparent 42%),
-        #080a0c;
+        linear-gradient(180deg, rgba(48, 209, 88, 0.18), transparent 38%),
+        #000;
     }
 
     .mini-map {
       position: relative;
       height: 96px;
-      border-radius: 22px;
+      border-radius: 26px;
       overflow: hidden;
       margin: 8px 0;
-      background: #142027;
+      background: #111820;
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
     }
 
     .stats {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      gap: 6px;
       margin-top: 6px;
     }
 
     .stat {
-      padding: 9px;
-      border-radius: 8px;
-      background: #151a1f;
-      min-height: 48px;
+      padding: 8px;
+      border-radius: 14px;
+      background: var(--row);
+      min-height: 46px;
     }
 
     .stat b {
@@ -415,25 +435,39 @@
 
     .primary {
       width: 100%;
-      min-height: 36px;
+      min-height: 39px;
       border: 0;
-      border-radius: 18px;
+      border-radius: 999px;
       background: var(--route);
       color: #061008;
       font-weight: 760;
       font-size: 14px;
     }
 
+    .watch-button-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 7px;
+      width: 100%;
+    }
+
     .data .hero-number {
-      margin: 6px 0 12px;
-      font-size: 42px;
+      margin: 7px 0 12px;
+      font-size: 48px;
       line-height: 0.95;
-      font-weight: 780;
+      font-weight: 800;
+    }
+
+    .unit {
+      margin-left: 3px;
+      color: var(--muted);
+      font-size: 18px;
+      font-weight: 700;
     }
 
     .rows {
       display: grid;
-      gap: 8px;
+      gap: 6px;
       margin-top: 4px;
     }
 
@@ -441,8 +475,11 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 9px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      min-height: 34px;
+      padding: 8px 10px;
+      border-radius: 13px;
+      background: var(--row);
+      border-bottom: 0;
       font-size: 13px;
     }
 
@@ -468,46 +505,54 @@
       width: 74px;
       height: 74px;
       border-radius: 50%;
-      background: #080a0c;
+      background: #000;
       font-weight: 760;
       font-size: 20px;
     }
 
     .control {
-      justify-content: center;
-      gap: 12px;
+      justify-content: flex-start;
+      gap: 10px;
     }
 
     .control-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
+      grid-template-columns: 1fr;
+      gap: 7px;
     }
 
     .action {
-      display: grid;
-      place-items: center;
-      height: 70px;
-      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 40px;
+      padding: 8px 10px;
+      border-radius: 15px;
       background: var(--button);
       font-size: 12px;
       font-weight: 680;
     }
 
     .action b {
-      display: block;
-      font-size: 24px;
+      display: grid;
+      place-items: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      font-size: 15px;
       line-height: 1;
-      margin-bottom: 4px;
+      margin-bottom: 0;
     }
 
     .danger {
-      background: var(--danger);
+      background: rgba(255, 69, 58, 0.2);
+      color: #ff6961;
     }
 
     .finish {
       justify-content: space-between;
-      background: #0a0b0d;
+      background: #000;
     }
 
     .finish-summary {
@@ -518,9 +563,9 @@
 
     .secondary,
     .end-button {
-      min-height: 36px;
+      min-height: 38px;
       border: 0;
-      border-radius: 18px;
+      border-radius: 999px;
       color: #fff;
       font-weight: 720;
       font-size: 13px;
@@ -531,7 +576,7 @@
     }
 
     .end-button {
-      background: var(--danger);
+      background: #ff453a;
     }
 
     .sync {
@@ -544,14 +589,37 @@
     .sync-icon {
       display: grid;
       place-items: center;
-      width: 78px;
-      height: 78px;
+      width: 82px;
+      height: 82px;
       border-radius: 50%;
-      background: rgba(91, 231, 214, 0.13);
-      color: var(--cyan);
+      background: var(--green-soft);
+      color: var(--route);
       font-size: 34px;
       font-weight: 760;
       box-shadow: inset 0 0 0 1px rgba(91, 231, 214, 0.28);
+    }
+
+    .page-dots {
+      position: absolute;
+      z-index: 6;
+      right: 7px;
+      top: 50%;
+      display: grid;
+      gap: 5px;
+      transform: translateY(-50%);
+    }
+
+    .page-dots i {
+      display: block;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.28);
+    }
+
+    .page-dots i.active {
+      height: 13px;
+      background: rgba(255, 255, 255, 0.82);
     }
 
     .notes {
@@ -638,6 +706,7 @@
               </div>
               <button class="primary">开始徒步</button>
             </div>
+            <div class="page-dots"><i class="active"></i><i></i><i></i><i></i></div>
           </div>
         </div>
         <div class="caption">
@@ -663,6 +732,7 @@
             <div class="location"></div>
             <div class="top-pill">路线上</div>
             <div class="bottom-pill">剩余 2.4km</div>
+            <div class="page-dots"><i class="active"></i><i></i><i></i><i></i></div>
           </div>
         </div>
         <div class="caption">
@@ -690,6 +760,7 @@
             <div class="location"></div>
             <div class="top-pill amber">前方 45m 左转</div>
             <div class="bottom-pill">继续 45m 后转向</div>
+            <div class="page-dots"><i class="active"></i><i></i><i></i><i></i></div>
           </div>
         </div>
         <div class="caption">
@@ -717,6 +788,7 @@
             <div class="location"></div>
             <div class="top-pill warning">偏离 38m</div>
             <div class="bottom-pill warning">向西南回到路线</div>
+            <div class="page-dots"><i class="active"></i><i></i><i></i><i></i></div>
           </div>
         </div>
         <div class="caption">
@@ -731,7 +803,7 @@
             <div class="page data">
               <div class="small-label">行进数据</div>
               <h3>当前状态</h3>
-              <div class="hero-number">3.2km</div>
+              <div class="hero-number">3.2<span class="unit">km</span></div>
               <div class="rows">
                 <div class="row"><span>用时</span><b>00:48</b></div>
                 <div class="row"><span>海拔</span><b>286m</b></div>
@@ -740,6 +812,7 @@
                 <div class="row"><span>剩余距离</span><b>5.4km</b></div>
               </div>
             </div>
+            <div class="page-dots"><i></i><i class="active"></i><i></i><i></i></div>
           </div>
         </div>
         <div class="caption">
@@ -762,6 +835,7 @@
                 <div class="row"><span>预计完成</span><b>16:35</b></div>
               </div>
             </div>
+            <div class="page-dots"><i></i><i></i><i class="active"></i><i></i></div>
           </div>
         </div>
         <div class="caption">
@@ -785,6 +859,7 @@
                 <div class="action danger"><b>■</b>结束</div>
               </div>
             </div>
+            <div class="page-dots"><i></i><i></i><i></i><i class="active"></i></div>
           </div>
         </div>
         <div class="caption">
@@ -807,8 +882,10 @@
                 <div class="stat"><b>430m</b><span>累计爬升</span></div>
                 <div class="stat"><b>1</b><span>偏航次数</span></div>
               </div>
-              <button class="secondary">继续记录</button>
-              <button class="end-button">保存并结束</button>
+              <div class="watch-button-row">
+                <button class="secondary">继续记录</button>
+                <button class="end-button">保存并结束</button>
+              </div>
             </div>
           </div>
         </div>
