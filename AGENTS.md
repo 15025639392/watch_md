@@ -24,6 +24,7 @@
 - `watch-outdoor-app-device-support-research.md`：跨平台设备支持与产品路线判断。
 - `docs/watchos-hiking-app-product-v0.1.md`：MVP 产品定义。
 - `docs/mvp-development-slices-v0.1.md`：MVP 开发切片。
+- `docs/watchos-capability-decisions-v0.1.md`：watchOS 能力使用、不使用和延期评估的取舍说明。
 - `docs/watchos-development-prompt-implementation-plan-v0.1.md`：可复制给 Codex 的开发提示词与实施计划。
 - `docs/hiking-data-model-v0.1.md`：路线、会话、轨迹、事件和同步对象模型。
 - `docs/watchconnectivity-sync-protocol-v0.1.md`：iPhone 与 Apple Watch 的同步协议。
