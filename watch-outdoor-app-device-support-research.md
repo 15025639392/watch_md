@@ -55,7 +55,7 @@ Apple Watch 的官方设置、配对、应用管理和健康数据能力依赖 i
 
 ### Android 手机 + 华为手表
 
-华为手表可以与 Android 手机配对，官方支持通过 Huawei Health 完成设备连接和管理。对徒步产品来说，这个组合有实际价值，尤其适合中国市场、华为手表存量用户，以及偏长续航的 Watch GT / Ultimate / Fit 等系列用户。
+华为手表可以与 Android 手机配对，官方支持通过 Huawei Health 完成设备连接和管理。对徒步产品来说，这个组合有实际价值，尤其适合中国市场、华为手表存量用户，以及偏长续航的 Watch GT 系列用户。
 
 但需要把 Android 手机再拆成两类：
 
@@ -195,7 +195,7 @@ Apple Watch 适合做完整的户外运动手表 App。它在定位、健康数�
 5. 需要确认 Wear Engine、Health Kit、Location Kit 在目标地区、目标手机系统和目标手表型号上的可用性。
 6. iOS 用户使用华为手表时，第三方联动能力通常弱于华为手机或 Android 生态。
 
-2026-06-06 追加调研结论：华为平台应按“智能可穿戴、轻量级智能可穿戴、手环、儿童/特殊形态设备”拆开判断。华为开发者文档明确存在智能可穿戴和轻量级智能可穿戴两类穿戴应用开发入口；华为消费者支持页也能证明 WATCH、GT、FIT、Ultimate、D/D2 等多个系列存在手表应用市场、地图或导航同步场景。但这些证据只能证明“存在相关能力和官方/合作应用路径”，不能直接推出“第三方徒步 App 可在所有华为手表上实现完整离线地图、后台定位和轨迹同步”。详细矩阵见 [华为各类型手表支持情况调研 v0.1](./docs/huawei-watch-support-research-v0.1.md)。
+2026-06-06 追加调研结论：华为平台应按“智能可穿戴、轻量级智能可穿戴、手环、儿童/特殊形态设备”拆开判断。当前优先验证 `WATCH` 数字系列和 `WATCH GT` 系列：前者用于验证完整智能表 App、后台定位和安装/上架路径，后者用于验证长续航户外用户、轻量导航和手机协同稳定性。华为消费者支持页也能证明 WATCH、GT、FIT、Ultimate、D/D2 等多个系列存在手表应用市场、地图或导航同步场景，但首批资源不分散到 FIT、Ultimate、D/D2。详细矩阵见 [华为各类型手表支持情况调研 v0.1](./docs/huawei-watch-support-research-v0.1.md)。
 
 ### 华为参考资料
 
@@ -324,7 +324,7 @@ COROS 官方列出了第三方 App 数据同步和 Partner with COROS 路径，�
 | --- | --- | --- |
 | Apple Watch | HKWorkoutSession 后台记录、Core Location、心率、路线下发、偏航提醒、结束后同步 | 1 小时连续记录无丢失；断开手机后仍能继续；运动结束可回传完整轨迹 |
 | Wear OS | Health Services ExerciseClient、GPS/心率/海拔、Data Layer 资源下发、地图显示 | Android 手机下发路线稳定；手表端能独立完成一次户外记录 |
-| 华为 | Wear Engine 消息/文件、Health Kit 权限、目标机型安装和上架路径 | 至少 2 个目标型号验证通过，明确地区、系统和手机生态限制 |
+| 华为 | Wear Engine 消息/文件、Health Kit 权限、WATCH / GT 目标机型安装和上架路径 | 至少 `WATCH 5/4` 与 `WATCH GT 5/6` 两条主线验证通过，明确地区、系统和手机生态限制 |
 | Garmin | Connect IQ 示例、Courses/Training API、Activity API、目标设备 API 级别 | 能推送路线或训练；能获取活动文件；确认是否值得做手表端轻量功能 |
 | Suunto | Partner/API 申请、Route/Guide/Workout API、SuuntoPlus Editor | 明确审批路径；能本地测试 SuuntoPlus Sports App 或 API demo |
 | COROS | API Application、路线/活动同步、合作要求 | 明确是否可获得权限；不可获得前不进入研发排期 |
@@ -384,7 +384,7 @@ COROS 官方列出了第三方 App 数据同步和 Partner with COROS 路径，�
 | 优先级 | 项目 | 目的 |
 | --- | --- | --- |
 | P0 | Apple Watch 实机验证 | 验证后台运动、定位、心率、路线同步和电量表现 |
-| P0 | 华为目标机型清单 | 明确支持哪些华为手表，而不是泛称支持华为 |
+| P0 | 华为 WATCH / GT 目标机型清单 | 明确优先验证 WATCH 数字系列和 WATCH GT 系列，而不是泛称支持华为 |
 | P0 | 手机-手表组合矩阵 | 明确 iPhone/Android/华为手机与 Apple Watch/Wear OS/华为手表的支持边界 |
 | P1 | Wear OS 实机验证 | 验证 Health Services、Data Layer、地图和电量表现 |
 | P1 | Garmin Connect IQ/API 验证 | 验证徒步路线推送、活动数据读取、轻量手表导航/提醒能力 |

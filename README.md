@@ -19,7 +19,7 @@
 3. 第一版暂不做 Android、Wear OS、华为手表、路线社区、复杂路线编辑、多地图源、专业等高线地图和订阅体系。
 4. iPhone 可通过远端接口获取官方/运营维护的路线列表，并下载指定路线详情后同步到 Watch；它不是路线社区、附近路线发现或 AI 推荐。
 5. Watch 端按用户已知路线编号、短码或精确名称远程获取指定 GPX 路线，作为 MVP 后续计划；它不是路线推荐、附近路线发现或路线社区。
-6. 华为手表具备后续验证价值，但要按手机生态、系统版本、地区、机型和上架路径逐项确认。
+6. 华为手表具备后续验证价值，当前优先验证 WATCH 数字系列和 WATCH GT 系列；仍要按手机生态、系统版本、地区、机型和上架路径逐项确认。
 
 ## 文档索引
 
@@ -31,6 +31,7 @@
 
 - [WatchOS 徒步 App MVP 产品定义](./docs/watchos-hiking-app-product-v0.1.md)
 - [WatchOS 徒步 App MVP 开发切分](./docs/mvp-development-slices-v0.1.md)
+- [WatchOS 能力使用取舍](./docs/watchos-capability-decisions-v0.1.md)
 - [WatchOS 徒步 App 开发提示词与技术实施计划](./docs/watchos-development-prompt-implementation-plan-v0.1.md)
 - [WatchOS 徒步 App 产品原型 v0.1](./docs/prototypes/watchos-product-prototype-v0.1.html)
 - [iPhone 徒步 App 产品原型 v0.1](./docs/prototypes/iphone-product-prototype-v0.1.html)
