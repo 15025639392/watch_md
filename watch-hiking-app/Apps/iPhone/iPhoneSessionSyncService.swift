@@ -123,7 +123,7 @@ final class iPhoneSessionSyncService: NSObject, ObservableObject {
             case .liveTrackSnapshot:
                 let envelope = try RouteSyncCodec.decoder.decode(SyncEnvelope<LiveTrackSnapshot>.self, from: data)
                 liveTrackSnapshot = envelope.payload
-                lastSyncMessage = "实时轨迹更新 · \(envelope.payload.trackPointCount) 点"
+                lastSyncMessage = "Watch 位置已回传"
                 return
             case .trackChunk:
                 let envelope = try RouteSyncCodec.decoder.decode(SyncEnvelope<TrackChunk>.self, from: data)

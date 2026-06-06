@@ -597,12 +597,9 @@ struct WatchSessionSyncListView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     WatchLiveTrackCard(
                         snapshot: sessionSyncService.liveTrackSnapshot,
-                        message: sessionSyncService.lastSyncMessage,
                         connectionTitle: sessionSyncService.watchConnectionTitle,
                         connectionDetail: sessionSyncService.watchConnectionDetail,
-                        receivedCount: sessionSyncService.receivedSessions.count,
-                        isConnected: sessionSyncService.isWatchConnected,
-                        activeSyncCount: pendingRecords.count
+                        isConnected: sessionSyncService.isWatchConnected
                     )
 
                     if sessionSyncService.receivedSessions.isEmpty {
@@ -661,12 +658,9 @@ struct WatchSessionRecordSection: View {
 
 struct WatchLiveTrackCard: View {
     let snapshot: LiveTrackSnapshot?
-    let message: String
     let connectionTitle: String
     let connectionDetail: String
-    let receivedCount: Int
     let isConnected: Bool
-    let activeSyncCount: Int
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -684,77 +678,91 @@ struct WatchLiveTrackCard: View {
             }
         }
         .frame(height: 360)
-        .overlay(alignment: .top) {
-            HStack(spacing: 10) {
-                Image(systemName: snapshot == nil ? "applewatch" : "location.north.line")
-                    .font(.headline)
-                    .foregroundStyle(snapshot == nil ? AppTheme.orange : AppTheme.green)
-                    .frame(width: 34, height: 34)
-                    .background(AppTheme.secondaryFill)
-                    .clipShape(Circle())
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(snapshot == nil ? "等待 Watch 位置" : snapshot?.watchTopStatusText ?? "Watch 实时轨迹")
-                        .font(.subheadline.weight(.semibold))
-                    Text(snapshot?.watchReturnedAtText ?? connectionDetail)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-
-                Spacer()
-            }
-            .padding(10)
-            .background(.regularMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .padding(10)
-        }
         .overlay(alignment: .bottom) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(snapshot?.watchBottomHintText ?? (isConnected ? "同步可用" : "不可用"))
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-
-                HStack(spacing: 8) {
-                    FloatingMetric(title: "心率", value: snapshot?.heartRateText ?? "-- bpm")
-                    FloatingMetric(title: "距离", value: snapshot?.workoutDistanceText ?? "--")
-                    FloatingMetric(title: "能量", value: snapshot?.energyText ?? "-- kcal")
-                }
-
-                HStack {
-                    Text("\(message) · 已回传 \(receivedCount) 条 · 待处理 \(activeSyncCount)")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                    Spacer()
-                }
-            }
-            .padding(10)
-            .background(.regularMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .padding(10)
+            WatchMapBottomPanel(
+                title: snapshot == nil ? "等待 Watch 位置" : snapshot?.watchTopStatusText ?? "Watch 实时轨迹",
+                subtitle: snapshot?.watchReturnedAtText ?? connectionDetail,
+                hint: snapshot?.watchBottomHintText ?? (isConnected ? "同步可用" : "不可用"),
+                returnDirection: snapshot?.returnToRouteDirectionText,
+                heartRate: snapshot?.heartRateText ?? "-- bpm",
+                distance: snapshot?.workoutDistanceText ?? "--",
+                energy: snapshot?.energyText ?? "-- kcal"
+            )
         }
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 
-struct FloatingMetric: View {
+struct WatchMapBottomPanel: View {
+    let title: String
+    let subtitle: String
+    let hint: String
+    let returnDirection: String?
+    let heartRate: String
+    let distance: String
+    let energy: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title)
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(1)
+                    Text(subtitle)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 8)
+
+                if let returnDirection {
+                    Text(returnDirection)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(AppTheme.red)
+                        .lineLimit(1)
+                }
+            }
+
+            HStack(spacing: 10) {
+                Text(hint)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .layoutPriority(1)
+
+                Spacer(minLength: 8)
+
+                InlineMetric(title: "心率", value: heartRate)
+                InlineMetric(title: "距离", value: distance)
+                InlineMetric(title: "能量", value: energy)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, 9)
+        .padding(.bottom, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.ultraThinMaterial.opacity(0.74))
+    }
+}
+
+struct InlineMetric: View {
     let title: String
     let value: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(value)
-                .font(.caption.weight(.semibold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
+        HStack(spacing: 3) {
             Text(title)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+            Text(value)
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .fixedSize(horizontal: true, vertical: false)
     }
 }
 
@@ -2131,23 +2139,23 @@ private extension LiveTrackSnapshot {
         if status == .paused { return "记录暂停中" }
         if routeMatchStatus == .offRoute {
             var parts = [String]()
-            if let bearingToRouteDegrees {
-                parts.append("向\(bearingToRouteDegrees.cardinalDirectionText)回到路线")
-            } else {
-                parts.append("回到路线")
-            }
             if let distanceFromRouteMeters {
                 parts.append("距路线 \(Formatters.distance(distanceFromRouteMeters))")
             }
             if let projectedRouteCoordinate {
                 parts.append(projectedRouteCoordinate.compactCoordinateText)
             }
-            return parts.joined(separator: " · ")
+            return parts.isEmpty ? "偏离路线" : parts.joined(separator: " · ")
         }
         if let routeProgressMeters {
             return "进度 \(Formatters.distance(routeProgressMeters))"
         }
         return status == .active ? "记录实际轨迹" : status.userFacingText
+    }
+
+    var returnToRouteDirectionText: String? {
+        guard routeMatchStatus == .offRoute, let bearingToRouteDegrees else { return nil }
+        return "向\(bearingToRouteDegrees.cardinalDirectionText)回到路线"
     }
 
     var routeMatchPillStyle: PillStyle {
