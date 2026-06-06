@@ -39,6 +39,8 @@ final class WatchRouteCardViewModel: ObservableObject {
     private var isOffRouteEventOpen = false
     private var lastOffRouteUpdateAt: Date?
     private var isLocationAccuracyPoorEventOpen = false
+    private var lastLiveSnapshotSentAt: Date?
+    private var lastLiveSnapshotPointCount = 0
     private let freeRecordingSourceProvider = "watch-free-recording"
 
     init() {
@@ -212,6 +214,7 @@ final class WatchRouteCardViewModel: ObservableObject {
             session = try await recorder.start(route: route, watchDeviceId: "watch-simulator")
             await workoutController.start()
             locationSampler.start()
+            await sendLiveSnapshotIfNeeded(force: true)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -254,6 +257,8 @@ final class WatchRouteCardViewModel: ObservableObject {
             isOffRouteEventOpen = false
             lastOffRouteUpdateAt = nil
             isLocationAccuracyPoorEventOpen = false
+            lastLiveSnapshotSentAt = nil
+            lastLiveSnapshotPointCount = 0
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -287,9 +292,26 @@ final class WatchRouteCardViewModel: ObservableObject {
             trackPointCount = snapshot.trackPoints.count
             session = snapshot.session
             locationStatusText = "定位中 · 精度 \(Int(location.horizontalAccuracy.rounded()))m"
+            await sendLiveSnapshotIfNeeded()
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    private func sendLiveSnapshotIfNeeded(force: Bool = false) async {
+        guard let session, session.status == .active || session.status == .paused else { return }
+        let now = Date()
+        let elapsed = lastLiveSnapshotSentAt.map { now.timeIntervalSince($0) } ?? .infinity
+        let hasNewPoints = trackPointCount > lastLiveSnapshotPointCount
+        guard force || (hasNewPoints && elapsed >= 5) || trackPointCount - lastLiveSnapshotPointCount >= 5 else { return }
+        await uploadService.sendLiveSnapshot(
+            session: session,
+            trackPoints: trackPoints,
+            workoutMetrics: workoutMetrics,
+            routeMatch: routeMatch
+        )
+        lastLiveSnapshotSentAt = now
+        lastLiveSnapshotPointCount = trackPointCount
     }
 
     private func recordRouteMatchEventIfNeeded(_ match: RouteMatchSnapshot, location: CLLocation) async throws {
@@ -401,7 +423,18 @@ struct RouteMatchSnapshot: Equatable {
     }
 }
 
-private extension RouteMatchSnapshot {
+extension RouteMatchSnapshot {
+    var liveSnapshotStatus: LiveTrackSnapshot.RouteMatchStatus {
+        switch status {
+        case .unknown: .unknown
+        case .onRoute: .onRoute
+        case .suspectedOffRoute: .suspectedOffRoute
+        case .offRoute: .offRoute
+        case .locationUnreliable: .locationUnreliable
+        case .paused: .paused
+        }
+    }
+
     var eventPayload: [String: String] {
         var payload: [String: String] = [:]
         if let distanceFromRouteMeters {
@@ -686,6 +719,7 @@ final class WatchLocationSampler: NSObject, @MainActor CLLocationManagerDelegate
         manager.desiredAccuracy = kCLLocationAccuracyBest
         manager.distanceFilter = 5
         manager.activityType = .fitness
+        manager.allowsBackgroundLocationUpdates = true
     }
 
     func start() {

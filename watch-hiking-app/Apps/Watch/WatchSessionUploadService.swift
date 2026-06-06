@@ -48,6 +48,30 @@ final class WatchSessionUploadService: NSObject {
         }
     }
 
+    func sendLiveSnapshot(
+        session hikingSession: HikingSession,
+        trackPoints: [TrackPoint],
+        workoutMetrics: WorkoutMetrics,
+        routeMatch: RouteMatchSnapshot
+    ) async {
+        guard session != nil else { return }
+        do {
+            let envelope = try SessionSyncCodec.makeLiveTrackSnapshotEnvelope(
+                session: hikingSession,
+                trackPoints: trackPoints,
+                heartRateBpm: workoutMetrics.heartRateBpm,
+                activeEnergyKilocalories: workoutMetrics.activeEnergyKilocalories,
+                workoutDistanceMeters: workoutMetrics.distanceMeters,
+                routeMatchStatus: routeMatch.liveSnapshotStatus,
+                distanceFromRouteMeters: routeMatch.distanceFromRouteMeters,
+                routeProgressMeters: routeMatch.routeProgressMeters
+            )
+            transfer(try RouteSyncCodec.encoder.encode(envelope), prefersRealtime: true)
+        } catch {
+            onStatusChange?("实时轨迹发送失败：\(error.localizedDescription)")
+        }
+    }
+
     private func handleAckData(_ data: Data) async {
         do {
             let header = try RouteSyncCodec.decoder.decode(SyncEnvelopeHeader.self, from: data)
@@ -84,17 +108,24 @@ final class WatchSessionUploadService: NSObject {
     }
 
     private func apply(_ result: WatchUploadEngineResult) {
-        result.envelopeData.forEach(transfer)
+        result.envelopeData.forEach { transfer($0) }
         if let statusText = result.statusText {
             onStatusChange?(statusText)
         }
     }
 
-    private func transfer(_ data: Data) {
+    private func transfer(_ data: Data, prefersRealtime: Bool = false) {
         guard let session else { return }
         if session.isReachable {
             session.sendMessageData(data, replyHandler: nil) { [weak self] error in
                 Task { @MainActor in
+                    guard !prefersRealtime else {
+                        self?.session?.transferUserInfo([
+                            WatchSessionTransferKeys.envelopeData: data,
+                            WatchSessionTransferKeys.kind: "liveTrackSnapshot"
+                        ])
+                        return
+                    }
                     self?.onStatusChange?("实时发送失败，改用可靠队列：\(error.localizedDescription)")
                     self?.session?.transferUserInfo([
                         WatchSessionTransferKeys.envelopeData: data,
@@ -105,7 +136,7 @@ final class WatchSessionUploadService: NSObject {
         } else {
             session.transferUserInfo([
                 WatchSessionTransferKeys.envelopeData: data,
-                WatchSessionTransferKeys.kind: "syncEnvelope"
+                WatchSessionTransferKeys.kind: prefersRealtime ? "liveTrackSnapshot" : "syncEnvelope"
             ])
         }
     }

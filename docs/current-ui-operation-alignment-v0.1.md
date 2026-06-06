@@ -87,16 +87,21 @@ Watch 中枢用于查看 Watch 会话回传，不是路线管理页。
 
 当前 UI：
 
-1. 顶部摘要卡显示连接、回传总数、待处理数量和最近同步消息。
-2. 没有会话时显示“Watch 等待徒步记录”。
-3. 有会话时按“待处理”和“已完成”分组。
-4. 点击会话进入“回传详情”。
+1. 顶部是“实时轨迹”地图卡，地图为主体；实时地图图层和 Watch 地图页保持一致，使用 Apple MapKit 标准底图并保留标准兴趣点呈现，WatchConnectivity 同步可用性、最近同步消息、待处理数量、Watch 当前位置、健康指标和偏航状态以半透明浮层显示在地图上。
+2. Watch 开始徒步后，iPhone 可看到 Watch 最近轨迹、当前位置、顶部状态、底部提示、心率、距离、能量、待处理回传数和最近更新时间。
+3. iPhone Watch 中枢实时卡的“顶部状态 / 底部提示 / 心率 / 距离 / 能量”应尽量和 Watch 底部浮层保持同一套语义；当 iPhone 未拿到路线总距离或回路线方向时，可以降级显示路线进度或“回到路线”。
+4. 没有会话时显示“Watch 等待徒步记录”。
+5. 有会话时按“待处理”和“已完成”分组。
+6. 点击会话进入“回传详情”。
 
 同步语义：
 
 1. Watch -> iPhone 会话回传已用 iPhone 模拟器 + 配套 Watch 模拟器验证 status / track chunk / event chunk / summary / ACK 流程。
 2. iPhone 收齐摘要、最终轨迹和最终事件后会把会话保存到 `ReceivedSessions`，外层记录和摘要内的 `syncStatus` 都应显示为 `synced`。
-3. 断连、后台、锁屏、重连和大体量 chunk 的真实设备表现仍需 iPhone + Apple Watch 真机验证。
+3. iPhone UI 中“Watch 已连接”只表示 `isReachable == true` 时可实时通信；Watch 退到后台或未实时可达时，当前实现显示“Watch 后台同步可用”，并通过 `transferUserInfo` 可靠队列同步，不能误写成路线或会话无法同步。
+4. Watch 行进中会发送 `liveTrackSnapshot` 轻量快照，包含当前位置、最近轨迹点、HealthKit 实时指标和路线匹配 / 偏航状态，用于 iPhone Watch 中枢实时预览；它不替代结束后的 `trackChunk` / `eventChunk` / `sessionSummary` 完整归档回传。
+5. `liveTrackSnapshot` 在 Watch 后台或非实时可达时允许进入 `transferUserInfo` 队列，更新频率受系统调度影响，不能承诺严格实时。
+6. 断连、后台、锁屏、重连和大体量 chunk 的真实设备表现仍需 iPhone + Apple Watch 真机验证。
 
 回传详情显示：
 
@@ -217,6 +222,12 @@ Watch 中枢用于查看 Watch 会话回传，不是路线管理页。
 1. 暂停时停止定位采样、暂停 workout，并写入 pause 事件。
 2. 暂停期间不写正式轨迹点。
 3. 继续时恢复会话、workout 和定位采样。
+
+持续定位当前配置：
+
+1. Watch target 已配置 `UIBackgroundModes = location` 和 `WKBackgroundModes = workout-processing`。
+2. `WatchLocationSampler` 启动后设置 `allowsBackgroundLocationUpdates = true`。
+3. 该配置用于支持徒步中息屏或 App 退到后台后的持续定位；长时间稳定性、耗电和系统调度表现仍需 Apple Watch 真机验证。
 
 结束：
 

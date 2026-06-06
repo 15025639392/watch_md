@@ -22,8 +22,8 @@
 | --- | --- | --- | --- |
 | SwiftUI | iPhone / Watch 页面骨架、状态视图、确认层、控制入口 | 不追求复杂动画和重型可视化 | 原生开发成本低，适合 watchOS 小屏状态驱动界面 |
 | MapKit | Watch 地图底图、路线叠加、当前位置、已走轨迹；iPhone 路线预览和复盘地图 | Watch 固定标准底图，不做图层切换；MapKit 不作为路线核心数据模型 | 原生地图集成成本最低，首版优先把路线关系讲清楚 |
-| Core Location | Watch 行进中定位、速度/方向辅助判断、轨迹点采集、偏航计算输入 | 采样频率按电量模式调整；低可信定位点不能直接触发偏航或中途接入路线 | 徒步导航和轨迹记录的 P0 能力 |
-| HealthKit / HKWorkoutSession | 徒步运动会话、心率/能量等运动数据引用、后台运动记录能力探索 | 权限缺失或启动失败时，地图导航和轨迹记录继续；健康数据为空或不完整 | 可提升长时间运动记录和复盘价值，但不能成为导航闭环的单点依赖 |
+| Core Location | Watch 行进中定位、速度/方向辅助判断、轨迹点采集、偏航计算输入；Watch target 配置 `UIBackgroundModes = location` 并启用 `allowsBackgroundLocationUpdates` | 采样频率按电量模式调整；低可信定位点不能直接触发偏航或中途接入路线；后台持续表现需要真机验证 | 徒步导航和轨迹记录的 P0 能力 |
+| HealthKit / HKWorkoutSession | 徒步运动会话、心率/能量等运动数据引用、后台运动记录能力探索；Watch target 配置 `WKBackgroundModes = workout-processing` | 权限缺失或启动失败时，地图导航和轨迹记录继续；健康数据为空或不完整；长时间后台生命周期需要真机验证 | 可提升长时间运动记录和复盘价值，但不能成为导航闭环的单点依赖 |
 | WatchConnectivity | iPhone 下发路线、Watch 回传会话状态、轨迹 chunk、事件 chunk 和摘要 | 路线/轨迹不能只依赖即时消息；需要本地落盘、ACK、去重和补传 | Apple Watch 与 iPhone 协同的主通道，符合本产品端分工 |
 | UserNotifications / Watch 触觉提醒 | 偏航、接近转向点、低电量、关键状态提醒 | 首版以触觉和轻量状态为主；复杂通知策略后置 | 徒步中用户不应频繁看屏，偏航提醒必须能抬腕外感知 |
 | 本地文件 / App 自有存储 | 路线 payload、会话、轨迹点、事件、待同步 chunk | 不把 HealthKit 或 MapKit 当主存储；同步完成前不删除 Watch 本地记录 | 户外弱连接下必须保证轨迹不丢 |

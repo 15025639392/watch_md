@@ -10,6 +10,7 @@ public enum SyncEnvelopeKind: String, Codable, Sendable {
     case routeManifest
     case routePayload
     case sessionStatus
+    case liveTrackSnapshot
     case trackChunk
     case eventChunk
     case sessionSummary

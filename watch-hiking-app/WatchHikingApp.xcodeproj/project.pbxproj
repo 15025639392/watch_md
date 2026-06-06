@@ -20,6 +20,7 @@
 		100000000000000000000013 /* Sources/HikingCore/HikingSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000D /* Sources/HikingCore/HikingSession.swift */; };
 		100000000000000000000016 /* Sources/HikingCore/SessionSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000011 /* Sources/HikingCore/SessionSync.swift */; };
 		100000000000000000000019 /* WatchHikingWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000C /* WatchHikingWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		10000000000000000000001A /* Apps/Watch/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000013 /* Apps/Watch/Assets.xcassets */; };
 		10000000000000000000000A /* Apps/Watch/WatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000002 /* Apps/Watch/WatchApp.swift */; };
 		100000000000000000000018 /* Apps/Watch/WatchSessionUploadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000012 /* Apps/Watch/WatchSessionUploadService.swift */; };
 		10000000000000000000000B /* Sources/HikingCore/Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000003 /* Sources/HikingCore/Models.swift */; };
@@ -65,6 +66,8 @@
 		200000000000000000000002 /* Apps/Watch/WatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Apps/Watch/WatchApp.swift; sourceTree = SOURCE_ROOT; };
 		200000000000000000000012 /* Apps/Watch/WatchSessionUploadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Apps/Watch/WatchSessionUploadService.swift; sourceTree = SOURCE_ROOT; };
 		20000000000000000000000F /* Apps/Watch/WatchHikingWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Apps/Watch/WatchHikingWatch.entitlements; sourceTree = SOURCE_ROOT; };
+		200000000000000000000013 /* Apps/Watch/Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Apps/Watch/Assets.xcassets; sourceTree = SOURCE_ROOT; };
+		200000000000000000000014 /* Apps/Watch/Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Apps/Watch/Info.plist; sourceTree = SOURCE_ROOT; };
 		200000000000000000000003 /* Sources/HikingCore/Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/HikingCore/Models.swift; sourceTree = SOURCE_ROOT; };
 		200000000000000000000004 /* Sources/HikingCore/GeoMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/HikingCore/GeoMath.swift; sourceTree = SOURCE_ROOT; };
 		200000000000000000000005 /* Sources/HikingCore/RouteBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/HikingCore/RouteBuilder.swift; sourceTree = SOURCE_ROOT; };
@@ -131,6 +134,8 @@
 				200000000000000000000002 /* Apps/Watch/WatchApp.swift */,
 				200000000000000000000012 /* Apps/Watch/WatchSessionUploadService.swift */,
 				20000000000000000000000F /* Apps/Watch/WatchHikingWatch.entitlements */,
+				200000000000000000000013 /* Apps/Watch/Assets.xcassets */,
+				200000000000000000000014 /* Apps/Watch/Info.plist */,
 			);
 			path = Watch;
 			sourceTree = "<group>";
@@ -188,6 +193,7 @@
 			buildPhases = (
 				600000000000000000000002 /* Sources */,
 				300000000000000000000002 /* Frameworks */,
+				600000000000000000000003 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -235,6 +241,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		600000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				10000000000000000000001A /* Apps/Watch/Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		600000000000000000000001 /* Sources */ = {
@@ -444,16 +461,12 @@
 		900000000000000000000005 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CODE_SIGN_ENTITLEMENTS = Apps/Watch/WatchHikingWatch.entitlements;
 				DEVELOPMENT_TEAM = YTQ3SFT962;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Hiking Watch";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "用于读取徒步运动过程中的心率、距离和能量数据。";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "用于在 Apple Watch 徒步时保存一次户外徒步运动记录。";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "用于在 Apple Watch 徒步时记录实际轨迹点。";
-				INFOPLIST_KEY_WKApplication = YES;
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.watchmd.hiking.iphone;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Apps/Watch/Info.plist;
 				PRODUCT_BUNDLE_IDENTIFIER = com.watchmd.hiking.iphone.watch;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -469,16 +482,12 @@
 		900000000000000000000006 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CODE_SIGN_ENTITLEMENTS = Apps/Watch/WatchHikingWatch.entitlements;
 				DEVELOPMENT_TEAM = YTQ3SFT962;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Hiking Watch";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "用于读取徒步运动过程中的心率、距离和能量数据。";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "用于在 Apple Watch 徒步时保存一次户外徒步运动记录。";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "用于在 Apple Watch 徒步时记录实际轨迹点。";
-				INFOPLIST_KEY_WKApplication = YES;
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.watchmd.hiking.iphone;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Apps/Watch/Info.plist;
 				PRODUCT_BUNDLE_IDENTIFIER = com.watchmd.hiking.iphone.watch;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;

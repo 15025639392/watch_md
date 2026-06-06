@@ -595,7 +595,8 @@ struct WatchSessionSyncListView: View {
             AppTheme.background.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    WatchCenterSummaryCard(
+                    WatchLiveTrackCard(
+                        snapshot: sessionSyncService.liveTrackSnapshot,
                         message: sessionSyncService.lastSyncMessage,
                         connectionTitle: sessionSyncService.watchConnectionTitle,
                         connectionDetail: sessionSyncService.watchConnectionDetail,
@@ -658,7 +659,8 @@ struct WatchSessionRecordSection: View {
     }
 }
 
-struct WatchCenterSummaryCard: View {
+struct WatchLiveTrackCard: View {
+    let snapshot: LiveTrackSnapshot?
     let message: String
     let connectionTitle: String
     let connectionDetail: String
@@ -667,19 +669,34 @@ struct WatchCenterSummaryCard: View {
     let activeSyncCount: Int
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        ZStack(alignment: .bottom) {
+            if let snapshot, !snapshot.recentPoints.isEmpty {
+                SessionTrackMap(trackPoints: snapshot.recentPoints, endpointMode: .currentOnly)
+            } else {
+                ZStack {
+                    AppTheme.secondaryFill
+                    ContentUnavailableView {
+                        Label("暂无实时轨迹", systemImage: "location.slash")
+                    } description: {
+                        Text("开始徒步后显示 Watch 当前位置和最近轨迹。")
+                    }
+                }
+            }
+        }
+        .frame(height: 360)
+        .overlay(alignment: .top) {
             HStack(spacing: 10) {
-                Image(systemName: isConnected ? "applewatch.radiowaves.left.and.right" : "applewatch.slash")
+                Image(systemName: snapshot == nil ? "applewatch" : "location.north.line")
                     .font(.headline)
-                    .foregroundStyle(isConnected ? AppTheme.green : AppTheme.orange)
+                    .foregroundStyle(snapshot == nil ? AppTheme.orange : AppTheme.green)
                     .frame(width: 34, height: 34)
                     .background(AppTheme.secondaryFill)
                     .clipShape(Circle())
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(connectionTitle)
+                    Text(snapshot == nil ? "等待 Watch 位置" : snapshot?.watchTopStatusText ?? "Watch 实时轨迹")
                         .font(.subheadline.weight(.semibold))
-                    Text(connectionDetail)
+                    Text(snapshot == nil ? connectionDetail : "\(connectionTitle) · \(snapshot!.updatedAt.relativeShortText)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
@@ -687,21 +704,57 @@ struct WatchCenterSummaryCard: View {
 
                 Spacer()
             }
-
-            HStack(spacing: 8) {
-                WatchHubMetric(title: "连接", value: isConnected ? "已连接" : "未连接", style: isConnected ? .ok : .warning)
-                WatchHubMetric(title: "回传", value: "\(receivedCount) 条", style: .neutral)
-                WatchHubMetric(title: "待处理", value: "\(activeSyncCount)", style: activeSyncCount == 0 ? .ok : .warning)
-            }
-
-            Text(message)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
+            .padding(10)
+            .background(.regularMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .padding(10)
         }
-        .padding(12)
-        .background(AppTheme.panel)
+        .overlay(alignment: .bottom) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(snapshot?.watchBottomHintText ?? (isConnected ? "同步可用" : "不可用"))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                HStack(spacing: 8) {
+                    FloatingMetric(title: "心率", value: snapshot?.heartRateText ?? "-- bpm")
+                    FloatingMetric(title: "距离", value: snapshot?.workoutDistanceText ?? "--")
+                    FloatingMetric(title: "能量", value: snapshot?.energyText ?? "-- kcal")
+                }
+
+                HStack {
+                    Text("\(message) · 已回传 \(receivedCount) 条 · 待处理 \(activeSyncCount)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Spacer()
+                }
+            }
+            .padding(10)
+            .background(.regularMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .padding(10)
+        }
         .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+struct FloatingMetric: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value)
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -1410,7 +1463,13 @@ private struct RoutePatternMap: UIViewRepresentable {
 }
 
 private struct SessionTrackMap: UIViewRepresentable {
+    enum EndpointMode {
+        case startAndEnd
+        case currentOnly
+    }
+
     let trackPoints: [TrackPoint]
+    var endpointMode: EndpointMode = .startAndEnd
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -1421,13 +1480,16 @@ private struct SessionTrackMap: UIViewRepresentable {
         mapView.delegate = context.coordinator
         mapView.showsCompass = true
         mapView.showsScale = true
-        mapView.pointOfInterestFilter = .excludingAll
+        mapView.preferredConfiguration = MKStandardMapConfiguration(elevationStyle: .flat)
+        mapView.pointOfInterestFilter = .includingAll
         return mapView
     }
 
     func updateUIView(_ mapView: MKMapView, context: Context) {
         context.coordinator.trackOverlay = nil
-        mapView.mapType = .standard
+        context.coordinator.endpointMode = endpointMode
+        mapView.preferredConfiguration = MKStandardMapConfiguration(elevationStyle: .flat)
+        mapView.pointOfInterestFilter = .includingAll
         mapView.removeOverlays(mapView.overlays)
         mapView.removeAnnotations(mapView.annotations)
 
@@ -1446,14 +1508,22 @@ private struct SessionTrackMap: UIViewRepresentable {
             )
         }
 
-        mapView.addAnnotation(RouteEndpointAnnotation(title: "起点", coordinate: first))
-        if let last = coordinates.last, coordinates.count > 1 {
-            mapView.addAnnotation(RouteEndpointAnnotation(title: "终点", coordinate: last))
+        switch endpointMode {
+        case .startAndEnd:
+            mapView.addAnnotation(RouteEndpointAnnotation(title: "起点", coordinate: first))
+            if let last = coordinates.last, coordinates.count > 1 {
+                mapView.addAnnotation(RouteEndpointAnnotation(title: "终点", coordinate: last))
+            }
+        case .currentOnly:
+            if let last = coordinates.last {
+                mapView.addAnnotation(RouteEndpointAnnotation(title: "当前", coordinate: last))
+            }
         }
     }
 
     final class Coordinator: NSObject, MKMapViewDelegate {
         weak var trackOverlay: MKPolyline?
+        var endpointMode: EndpointMode = .startAndEnd
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             guard let polyline = overlay as? MKPolyline, polyline === trackOverlay else {
@@ -1473,8 +1543,17 @@ private struct SessionTrackMap: UIViewRepresentable {
             let view = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
             view.annotation = annotation
             if let marker = view as? MKMarkerAnnotationView {
-                marker.markerTintColor = endpoint.title == "起点" ? UIColor.systemGreen : UIColor.systemOrange
-                marker.glyphText = endpoint.title == "起点" ? "起" : "终"
+                switch endpoint.title {
+                case "起点":
+                    marker.markerTintColor = UIColor.systemGreen
+                    marker.glyphText = "起"
+                case "当前":
+                    marker.markerTintColor = UIColor.systemBlue
+                    marker.glyphImage = UIImage(systemName: "location.north.fill")
+                default:
+                    marker.markerTintColor = UIColor.systemOrange
+                    marker.glyphText = "终"
+                }
             }
             return view
         }
@@ -1997,6 +2076,88 @@ private extension SequenceRange {
             return "第 \(startSequence + 1) 个轨迹点"
         }
         return "第 \(startSequence + 1)-\(endSequence + 1) 个轨迹点"
+    }
+}
+
+private extension HikingSessionStatus {
+    var userFacingText: String {
+        switch self {
+        case .planned: "未开始"
+        case .active: "记录中"
+        case .paused: "已暂停"
+        case .finished: "已结束"
+        case .abandoned: "已放弃"
+        }
+    }
+}
+
+private extension LiveTrackSnapshot {
+    var heartRateText: String {
+        guard let heartRateBpm else { return "-- bpm" }
+        return "\(Int(heartRateBpm.rounded())) bpm"
+    }
+
+    var energyText: String {
+        guard let activeEnergyKilocalories else { return "-- kcal" }
+        return "\(Int(activeEnergyKilocalories.rounded())) kcal"
+    }
+
+    var workoutDistanceText: String {
+        guard let workoutDistanceMeters else { return "--" }
+        return Formatters.distance(workoutDistanceMeters)
+    }
+
+    var watchTopStatusText: String {
+        if status == .finished { return "已结束" }
+        if status == .paused { return "已暂停" }
+        switch routeMatchStatus {
+        case .unknown:
+            return status == .active ? "定位中" : status.userFacingText
+        case .onRoute:
+            return "路线上"
+        case .suspectedOffRoute:
+            return "路线待确认"
+        case .offRoute:
+            if let distanceFromRouteMeters {
+                return "偏离 \(Formatters.distance(distanceFromRouteMeters))"
+            }
+            return "偏离路线"
+        case .locationUnreliable:
+            return "定位不稳"
+        case .paused:
+            return "已暂停"
+        }
+    }
+
+    var watchBottomHintText: String {
+        if status == .paused { return "记录暂停中" }
+        if routeMatchStatus == .offRoute { return "回到路线" }
+        if let routeProgressMeters {
+            return "进度 \(Formatters.distance(routeProgressMeters))"
+        }
+        return status == .active ? "记录实际轨迹" : status.userFacingText
+    }
+
+    var routeMatchPillStyle: PillStyle {
+        switch routeMatchStatus {
+        case .onRoute:
+            return .ok
+        case .suspectedOffRoute, .locationUnreliable, .paused, .unknown:
+            return .warning
+        case .offRoute:
+            return .danger
+        }
+    }
+}
+
+private extension Date {
+    var relativeShortText: String {
+        let seconds = max(0, Int(Date().timeIntervalSince(self)))
+        if seconds < 60 { return "\(seconds)s 前" }
+        let minutes = seconds / 60
+        if minutes < 60 { return "\(minutes)m 前" }
+        let hours = minutes / 60
+        return "\(hours)h 前"
     }
 }
 

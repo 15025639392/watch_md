@@ -42,6 +42,64 @@ public struct TrackChunk: Codable, Equatable, Sendable {
     }
 }
 
+public struct LiveTrackSnapshot: Codable, Equatable, Sendable {
+    public enum RouteMatchStatus: String, Codable, Sendable {
+        case unknown
+        case onRoute
+        case suspectedOffRoute
+        case offRoute
+        case locationUnreliable
+        case paused
+    }
+
+    public var sessionId: String
+    public var routeId: String
+    public var routeVersion: Int
+    public var status: HikingSessionStatus
+    public var updatedAt: Date
+    public var trackPointCount: Int
+    public var currentPoint: TrackPoint?
+    public var recentPoints: [TrackPoint]
+    public var heartRateBpm: Double?
+    public var activeEnergyKilocalories: Double?
+    public var workoutDistanceMeters: Double?
+    public var routeMatchStatus: RouteMatchStatus
+    public var distanceFromRouteMeters: Double?
+    public var routeProgressMeters: Double?
+
+    public init(
+        sessionId: String,
+        routeId: String,
+        routeVersion: Int,
+        status: HikingSessionStatus,
+        updatedAt: Date,
+        trackPointCount: Int,
+        currentPoint: TrackPoint?,
+        recentPoints: [TrackPoint],
+        heartRateBpm: Double? = nil,
+        activeEnergyKilocalories: Double? = nil,
+        workoutDistanceMeters: Double? = nil,
+        routeMatchStatus: RouteMatchStatus = .unknown,
+        distanceFromRouteMeters: Double? = nil,
+        routeProgressMeters: Double? = nil
+    ) {
+        self.sessionId = sessionId
+        self.routeId = routeId
+        self.routeVersion = routeVersion
+        self.status = status
+        self.updatedAt = updatedAt
+        self.trackPointCount = trackPointCount
+        self.currentPoint = currentPoint
+        self.recentPoints = recentPoints
+        self.heartRateBpm = heartRateBpm
+        self.activeEnergyKilocalories = activeEnergyKilocalories
+        self.workoutDistanceMeters = workoutDistanceMeters
+        self.routeMatchStatus = routeMatchStatus
+        self.distanceFromRouteMeters = distanceFromRouteMeters
+        self.routeProgressMeters = routeProgressMeters
+    }
+}
+
 public struct EventChunk: Codable, Equatable, Sendable {
     public var sessionId: String
     public var chunkId: String
@@ -105,6 +163,46 @@ public enum SessionSyncCodec {
                 payload: chunk
             )
         }
+    }
+
+    public static func makeLiveTrackSnapshotEnvelope(
+        session: HikingSession,
+        trackPoints: [TrackPoint],
+        heartRateBpm: Double? = nil,
+        activeEnergyKilocalories: Double? = nil,
+        workoutDistanceMeters: Double? = nil,
+        routeMatchStatus: LiveTrackSnapshot.RouteMatchStatus = .unknown,
+        distanceFromRouteMeters: Double? = nil,
+        routeProgressMeters: Double? = nil,
+        recentPointLimit: Int = 80
+    ) throws -> SyncEnvelope<LiveTrackSnapshot> {
+        let recentPoints = Array(trackPoints.sorted { $0.sequence < $1.sequence }.suffix(max(1, recentPointLimit)))
+        let payload = LiveTrackSnapshot(
+            sessionId: session.sessionId,
+            routeId: session.routeId,
+            routeVersion: session.routeVersion,
+            status: session.status,
+            updatedAt: session.lastUpdatedAt,
+            trackPointCount: trackPoints.count,
+            currentPoint: recentPoints.last,
+            recentPoints: recentPoints,
+            heartRateBpm: heartRateBpm,
+            activeEnergyKilocalories: activeEnergyKilocalories,
+            workoutDistanceMeters: workoutDistanceMeters,
+            routeMatchStatus: routeMatchStatus,
+            distanceFromRouteMeters: distanceFromRouteMeters,
+            routeProgressMeters: routeProgressMeters
+        )
+        let data = try RouteSyncCodec.encoder.encode(payload)
+        return SyncEnvelope(
+            sender: .watch,
+            kind: .liveTrackSnapshot,
+            entityId: session.sessionId,
+            entityVersion: session.routeVersion,
+            isFinal: false,
+            payloadChecksum: RouteSyncCodec.checksum(data: data),
+            payload: payload
+        )
     }
 
     public static func makeEventChunkEnvelopes(for storedSession: StoredHikingSession, chunkSize: Int = 20) throws -> [SyncEnvelope<EventChunk>] {

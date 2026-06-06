@@ -7,6 +7,7 @@ final class iPhoneSessionSyncService: NSObject, ObservableObject {
     static let shared = iPhoneSessionSyncService()
 
     @Published private(set) var receivedSessions: [ReceivedSessionRecord] = []
+    @Published private(set) var liveTrackSnapshot: LiveTrackSnapshot?
     @Published private(set) var lastSyncMessage = "等待 Watch 回传"
     @Published private(set) var isWatchConnectivityAvailable = WCSession.isSupported()
     @Published private(set) var isWatchConnected = false
@@ -90,9 +91,9 @@ final class iPhoneSessionSyncService: NSObject, ObservableObject {
             watchConnectionTitle = "Watch 已连接"
             watchConnectionDetail = "可以实时通信；结束后也会继续支持可靠回传"
         } else {
-            isWatchConnected = false
-            watchConnectionTitle = "Watch 未实时连接"
-            watchConnectionDetail = "可靠回传会排队，Watch 靠近并打开后继续同步"
+            isWatchConnected = true
+            watchConnectionTitle = "Watch 后台同步可用"
+            watchConnectionDetail = "Watch 可能在后台；路线和回传会通过可靠队列继续同步"
         }
     }
 
@@ -119,6 +120,11 @@ final class iPhoneSessionSyncService: NSObject, ObservableObject {
                 let envelope = try RouteSyncCodec.decoder.decode(SyncEnvelope<SessionStatusPayload>.self, from: data)
                 ack = try await receiver.receiveStatus(envelope)
                 sessionId = envelope.payload.sessionId
+            case .liveTrackSnapshot:
+                let envelope = try RouteSyncCodec.decoder.decode(SyncEnvelope<LiveTrackSnapshot>.self, from: data)
+                liveTrackSnapshot = envelope.payload
+                lastSyncMessage = "实时轨迹更新 · \(envelope.payload.trackPointCount) 点"
+                return
             case .trackChunk:
                 let envelope = try RouteSyncCodec.decoder.decode(SyncEnvelope<TrackChunk>.self, from: data)
                 ack = try await receiver.receiveTrackChunk(envelope)
@@ -196,7 +202,7 @@ extension iPhoneSessionSyncService: WatchRouteSyncTransport {
         guard session.activationState == .activated else { return "正在连接 Watch" }
         guard session.isPaired else { return "未配对 Apple Watch" }
         guard session.isWatchAppInstalled else { return "Watch App 未安装" }
-        return session.isReachable ? "Watch 已连接，可发送路线" : "Watch 未实时连接，将通过可靠队列同步"
+        return session.isReachable ? "Watch 已连接，可发送路线" : "Watch 在后台或未实时可达，将通过可靠队列同步"
     }
 
     func sync(_ route: InstalledRoute) -> AsyncThrowingStream<RouteSyncState, Error> {
