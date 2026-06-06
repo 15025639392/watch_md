@@ -222,6 +222,11 @@ buildscript {
 
 当前仓库已在 `huawei-validation/` 下放置这些验证工程骨架。真实开发时仍需要用 DevEco Studio / Android Studio 创建可编译工程，并按目标设备迁入骨架文件。
 
+华为 WATCH 数字系列和 WATCH GT 系列的产品 MVP 已拆成两份规格：
+
+1. `docs/huawei-watch-series-mvp-spec-v0.1.md`：面向 WATCH 5 / WATCH 4，验证完整智能手表 App、腕上路线跟随、偏航提醒、轨迹记录和结束回传。
+2. `docs/huawei-gt-series-mvp-spec-v0.1.md`：面向 WATCH GT 6 / GT 5，优先验证长续航轻量导航协同、偏航震动、关键点提醒、会话控制和手机侧主计算。
+
 为了先跑通流程，当前优先使用本地模拟脚本：
 
 ```sh

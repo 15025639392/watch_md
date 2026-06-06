@@ -55,6 +55,8 @@
 - [华为手表开发环境搭建记录](./docs/huawei-watch-dev-env.md)
 - [华为各类型手表支持情况调研](./docs/huawei-watch-support-research-v0.1.md)
 - [华为 Wear Engine / Health Kit / AppGallery 申请与 SDK 接入说明](./docs/huawei-sdk-application-integration-v0.1.md)
+- [华为 WATCH 系列徒步 App MVP 规格](./docs/huawei-watch-series-mvp-spec-v0.1.md)
+- [华为 WATCH GT 系列徒步 App MVP 规格](./docs/huawei-gt-series-mvp-spec-v0.1.md)
 - [HarmonyOS / Huawei watch 开发环境自检脚本](./scripts/check-harmonyos-watch-env.sh)
 
 ## 建议阅读顺序

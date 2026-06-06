@@ -34,6 +34,11 @@
 4. 手机侧 Wear Engine Demo 负责路线下发、ACK 和状态同步。
 5. 路线模型、GPX 解析、偏航规则和通信 payload 可以共享；手表端工程不要默认共享。
 
+对应产品规格：
+
+1. `../docs/huawei-watch-series-mvp-spec-v0.1.md`
+2. `../docs/huawei-gt-series-mvp-spec-v0.1.md`
+
 ## 下一步
 
 1. 先运行本地流程 Demo，确认协议能从手机侧下发到 WATCH / GT 两条线。
