@@ -51,6 +51,7 @@ final class WatchSessionUploadService: NSObject {
     func sendLiveSnapshot(
         session hikingSession: HikingSession,
         trackPoints: [TrackPoint],
+        routePoints: [GeoCoordinate],
         workoutMetrics: WorkoutMetrics,
         routeMatch: RouteMatchSnapshot
     ) async {
@@ -59,6 +60,7 @@ final class WatchSessionUploadService: NSObject {
             let envelope = try SessionSyncCodec.makeLiveTrackSnapshotEnvelope(
                 session: hikingSession,
                 trackPoints: trackPoints,
+                routePoints: Array(routePoints.prefix(500)),
                 heartRateBpm: workoutMetrics.heartRateBpm,
                 activeEnergyKilocalories: workoutMetrics.activeEnergyKilocalories,
                 workoutDistanceMeters: workoutMetrics.distanceMeters,

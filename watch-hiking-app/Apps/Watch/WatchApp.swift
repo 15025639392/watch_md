@@ -304,9 +304,11 @@ final class WatchRouteCardViewModel: ObservableObject {
         let elapsed = lastLiveSnapshotSentAt.map { now.timeIntervalSince($0) } ?? .infinity
         let hasNewPoints = trackPointCount > lastLiveSnapshotPointCount
         guard force || (hasNewPoints && elapsed >= 5) || trackPointCount - lastLiveSnapshotPointCount >= 5 else { return }
+        let routePoints = route?.isFreeRecordingPlaceholder == true ? [] : route?.simplifiedForWatch.points.map(\.coordinate) ?? []
         await uploadService.sendLiveSnapshot(
             session: session,
             trackPoints: trackPoints,
+            routePoints: routePoints,
             workoutMetrics: workoutMetrics,
             routeMatch: routeMatch
         )

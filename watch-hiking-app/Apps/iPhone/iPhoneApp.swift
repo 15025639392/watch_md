@@ -581,6 +581,7 @@ struct WatchHubMetric: View {
 
 struct WatchSessionSyncListView: View {
     @EnvironmentObject private var sessionSyncService: iPhoneSessionSyncService
+    @State private var isShowingLiveMap = false
 
     private var pendingRecords: [ReceivedSessionRecord] {
         sessionSyncService.receivedSessions.filter { $0.displayState != .completed }
@@ -599,7 +600,10 @@ struct WatchSessionSyncListView: View {
                         snapshot: sessionSyncService.liveTrackSnapshot,
                         connectionTitle: sessionSyncService.watchConnectionTitle,
                         connectionDetail: sessionSyncService.watchConnectionDetail,
-                        isConnected: sessionSyncService.isWatchConnected
+                        isConnected: sessionSyncService.isWatchConnected,
+                        onOpenMap: {
+                            isShowingLiveMap = true
+                        }
                     )
 
                     if sessionSyncService.receivedSessions.isEmpty {
@@ -623,6 +627,13 @@ struct WatchSessionSyncListView: View {
         }
         .navigationTitle("Watch 中枢")
         .navigationBarTitleDisplayMode(.inline)
+        .fullScreenCover(isPresented: $isShowingLiveMap) {
+            WatchLiveTrackFullScreenView(
+                snapshot: sessionSyncService.liveTrackSnapshot,
+                connectionDetail: sessionSyncService.watchConnectionDetail,
+                isConnected: sessionSyncService.isWatchConnected
+            )
+        }
     }
 }
 
@@ -661,11 +672,17 @@ struct WatchLiveTrackCard: View {
     let connectionTitle: String
     let connectionDetail: String
     let isConnected: Bool
+    let onOpenMap: () -> Void
 
     var body: some View {
         ZStack(alignment: .bottom) {
             if let snapshot, !snapshot.recentPoints.isEmpty {
-                SessionTrackMap(trackPoints: snapshot.recentPoints, endpointMode: .currentOnly)
+                SessionTrackMap(
+                    trackPoints: snapshot.recentPoints,
+                    routePoints: snapshot.routePoints,
+                    projectedRouteCoordinate: snapshot.projectedRouteCoordinate,
+                    endpointMode: .currentOnly
+                )
             } else {
                 ZStack {
                     AppTheme.secondaryFill
@@ -678,6 +695,12 @@ struct WatchLiveTrackCard: View {
             }
         }
         .frame(height: 360)
+        .contentShape(RoundedRectangle(cornerRadius: 8))
+        .onTapGesture {
+            if snapshot?.recentPoints.isEmpty == false {
+                onOpenMap()
+            }
+        }
         .overlay(alignment: .bottom) {
             WatchMapBottomPanel(
                 title: snapshot == nil ? "等待 Watch 位置" : snapshot?.watchTopStatusText ?? "Watch 实时轨迹",
@@ -690,6 +713,59 @@ struct WatchLiveTrackCard: View {
             )
         }
         .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+struct WatchLiveTrackFullScreenView: View {
+    @Environment(\.dismiss) private var dismiss
+    let snapshot: LiveTrackSnapshot?
+    let connectionDetail: String
+    let isConnected: Bool
+
+    var body: some View {
+        ZStack {
+            if let snapshot, !snapshot.recentPoints.isEmpty {
+                SessionTrackMap(
+                    trackPoints: snapshot.recentPoints,
+                    routePoints: snapshot.routePoints,
+                    projectedRouteCoordinate: snapshot.projectedRouteCoordinate,
+                    endpointMode: .currentOnly
+                )
+                .ignoresSafeArea()
+            } else {
+                AppTheme.secondaryFill.ignoresSafeArea()
+                ContentUnavailableView {
+                    Label("暂无实时轨迹", systemImage: "location.slash")
+                } description: {
+                    Text("开始徒步后显示 Watch 当前位置和最近轨迹。")
+                }
+            }
+        }
+        .overlay(alignment: .topLeading) {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .frame(width: 36, height: 36)
+                    .background(.ultraThinMaterial, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 14)
+            .padding(.leading, 14)
+        }
+        .overlay(alignment: .bottom) {
+            WatchMapBottomPanel(
+                title: snapshot == nil ? "等待 Watch 位置" : snapshot?.watchTopStatusText ?? "Watch 实时轨迹",
+                subtitle: snapshot?.watchReturnedAtText ?? connectionDetail,
+                hint: snapshot?.watchBottomHintText ?? (isConnected ? "同步可用" : "不可用"),
+                returnDirection: snapshot?.returnToRouteDirectionText,
+                heartRate: snapshot?.heartRateText ?? "-- bpm",
+                distance: snapshot?.workoutDistanceText ?? "--",
+                energy: snapshot?.energyText ?? "-- kcal"
+            )
+        }
     }
 }
 
@@ -1477,6 +1553,8 @@ private struct SessionTrackMap: UIViewRepresentable {
     }
 
     let trackPoints: [TrackPoint]
+    var routePoints: [GeoCoordinate] = []
+    var projectedRouteCoordinate: GeoCoordinate?
     var endpointMode: EndpointMode = .startAndEnd
 
     func makeCoordinator() -> Coordinator {
@@ -1494,6 +1572,8 @@ private struct SessionTrackMap: UIViewRepresentable {
 
     func updateUIView(_ mapView: MKMapView, context: Context) {
         context.coordinator.trackOverlay = nil
+        context.coordinator.routeOverlay = nil
+        context.coordinator.offRouteOverlay = nil
         context.coordinator.endpointMode = endpointMode
         mapView.mapType = .hybrid
         mapView.removeOverlays(mapView.overlays)
@@ -1501,17 +1581,34 @@ private struct SessionTrackMap: UIViewRepresentable {
 
         let coordinates = trackPoints.sorted { $0.sequence < $1.sequence }.map(\.locationCoordinate)
         guard let first = coordinates.first else { return }
+        let routeCoordinates = routePoints.map(\.locationCoordinate)
+
+        if routeCoordinates.count >= 2 {
+            let polyline = MKPolyline(coordinates: routeCoordinates, count: routeCoordinates.count)
+            context.coordinator.routeOverlay = polyline
+            mapView.addOverlay(polyline)
+        }
 
         if coordinates.count >= 2 {
             let polyline = MKPolyline(coordinates: coordinates, count: coordinates.count)
             context.coordinator.trackOverlay = polyline
             mapView.addOverlay(polyline)
-            mapView.setVisibleMapRect(polyline.boundingMapRect, edgePadding: UIEdgeInsets(top: 90, left: 30, bottom: 220, right: 30), animated: false)
+            let visibleRect = routeCoordinates.count >= 2
+                ? polyline.boundingMapRect.union(MKPolyline(coordinates: routeCoordinates, count: routeCoordinates.count).boundingMapRect)
+                : polyline.boundingMapRect
+            mapView.setVisibleMapRect(visibleRect, edgePadding: UIEdgeInsets(top: 90, left: 30, bottom: 220, right: 30), animated: false)
         } else {
             mapView.setRegion(
                 MKCoordinateRegion(center: first, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)),
                 animated: false
             )
+        }
+
+        if let current = coordinates.last, let projectedRouteCoordinate {
+            let offRouteCoordinates = [current, projectedRouteCoordinate.locationCoordinate]
+            let polyline = MKPolyline(coordinates: offRouteCoordinates, count: offRouteCoordinates.count)
+            context.coordinator.offRouteOverlay = polyline
+            mapView.addOverlay(polyline)
         }
 
         switch endpointMode {
@@ -1529,15 +1626,29 @@ private struct SessionTrackMap: UIViewRepresentable {
 
     final class Coordinator: NSObject, MKMapViewDelegate {
         weak var trackOverlay: MKPolyline?
+        weak var routeOverlay: MKPolyline?
+        weak var offRouteOverlay: MKPolyline?
         var endpointMode: EndpointMode = .startAndEnd
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-            guard let polyline = overlay as? MKPolyline, polyline === trackOverlay else {
+            guard let polyline = overlay as? MKPolyline else {
                 return MKOverlayRenderer(overlay: overlay)
             }
             let renderer = MKPolylineRenderer(polyline: polyline)
-            renderer.strokeColor = UIColor.systemBlue
-            renderer.lineWidth = 5
+            if polyline === routeOverlay {
+                renderer.strokeColor = UIColor.systemCyan
+                renderer.lineWidth = 5
+            } else if polyline === offRouteOverlay {
+                renderer.strokeColor = UIColor.systemRed
+                renderer.lineWidth = 3
+                renderer.lineDashPattern = [5, 4]
+            } else if polyline === trackOverlay {
+                renderer.strokeColor = UIColor.systemOrange.withAlphaComponent(0.75)
+                renderer.lineWidth = 3
+            } else {
+                renderer.strokeColor = UIColor.systemBlue
+                renderer.lineWidth = 4
+            }
             renderer.lineCap = .round
             renderer.lineJoin = .round
             return renderer

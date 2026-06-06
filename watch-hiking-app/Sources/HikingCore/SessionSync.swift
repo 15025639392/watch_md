@@ -60,6 +60,7 @@ public struct LiveTrackSnapshot: Codable, Equatable, Sendable {
     public var trackPointCount: Int
     public var currentPoint: TrackPoint?
     public var recentPoints: [TrackPoint]
+    public var routePoints: [GeoCoordinate]
     public var heartRateBpm: Double?
     public var activeEnergyKilocalories: Double?
     public var workoutDistanceMeters: Double?
@@ -78,6 +79,7 @@ public struct LiveTrackSnapshot: Codable, Equatable, Sendable {
         trackPointCount: Int,
         currentPoint: TrackPoint?,
         recentPoints: [TrackPoint],
+        routePoints: [GeoCoordinate] = [],
         heartRateBpm: Double? = nil,
         activeEnergyKilocalories: Double? = nil,
         workoutDistanceMeters: Double? = nil,
@@ -95,6 +97,7 @@ public struct LiveTrackSnapshot: Codable, Equatable, Sendable {
         self.trackPointCount = trackPointCount
         self.currentPoint = currentPoint
         self.recentPoints = recentPoints
+        self.routePoints = routePoints
         self.heartRateBpm = heartRateBpm
         self.activeEnergyKilocalories = activeEnergyKilocalories
         self.workoutDistanceMeters = workoutDistanceMeters
@@ -174,6 +177,7 @@ public enum SessionSyncCodec {
     public static func makeLiveTrackSnapshotEnvelope(
         session: HikingSession,
         trackPoints: [TrackPoint],
+        routePoints: [GeoCoordinate] = [],
         heartRateBpm: Double? = nil,
         activeEnergyKilocalories: Double? = nil,
         workoutDistanceMeters: Double? = nil,
@@ -194,6 +198,7 @@ public enum SessionSyncCodec {
             trackPointCount: trackPoints.count,
             currentPoint: recentPoints.last,
             recentPoints: recentPoints,
+            routePoints: routePoints,
             heartRateBpm: heartRateBpm,
             activeEnergyKilocalories: activeEnergyKilocalories,
             workoutDistanceMeters: workoutDistanceMeters,
