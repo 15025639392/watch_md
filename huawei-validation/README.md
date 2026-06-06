@@ -59,6 +59,36 @@ node huawei-validation/scripts/run-local-flow-demo.mjs
 
 它会读取 `shared/route-payload.sample.json` 作为 WATCH 数字系列完整路线 payload，读取 `shared/gt-navigation-payload.sample.json` 作为 GT 系列轻量导航 payload，并输出两条线的 ACK 与状态回传。这个脚本用于验证 payload 和流程，不代表真实 Wear Engine 通信已经接通。
 
+## 真实工程导入包
+
+创建 DevEco Studio / Android Studio 真实工程前，可以先生成导入包：
+
+```sh
+node huawei-validation/scripts/prepare-real-project-import.mjs
+```
+
+脚本会输出 `huawei-validation/generated/real-project-import/`，按 WATCH、GT、HarmonyOS 手机、Android 手机和共享协议样本拆好目录，并生成 `MANIFEST.md`。这个目录是迁移辅助产物，真实工程仍应由 DevEco Studio / Android Studio 创建。
+
+## 模拟器状态
+
+本机已检测到 DevEco 的 `Huawei_Wearable` API 20-24 模板，但尚未下载 wearable/watch system image。无真机时，需要先在 DevEco Device Manager 创建 `Huawei_Wearable` API 24、466x466 模拟器并下载镜像。
+
+检查命令：
+
+```sh
+bash scripts/check-huawei-watch-emulator.sh
+```
+
+## H0 Readiness
+
+创建真实工程或下载手表镜像后，运行：
+
+```sh
+bash huawei-validation/scripts/check-h0-readiness.sh
+```
+
+它会检查 DevEco / Emulator、wearable system image、`hdc list targets`、真实工程导入包和本地 payload 流程。若仍提示 wearable system image 缺失，说明还不能用本机手表模拟器完成 H0。
+
 手机侧骨架中已经把传输层拆成：
 
 | 文件 | 作用 |

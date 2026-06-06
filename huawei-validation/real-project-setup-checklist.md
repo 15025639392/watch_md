@@ -26,8 +26,10 @@ bash scripts/check-harmonyos-watch-env.sh
 | ohpm | 命令存在但 8s 内未返回，需要 DevEco 内再次确认 |
 | hdc | 命令存在但 5s 内未返回，需要连接真机后再次确认 |
 | hdc list targets | 5s 内未返回，当前未确认真机连接 |
+| 手表模拟器模板 | OK，DevEco 本地有 `Huawei_Wearable` API 20-24 模板 |
+| 手表模拟器系统镜像 | 未安装，本机当前只有 `phone_all_arm` 系统镜像 |
 
-结论：本机已具备创建 DevEco Studio wearable / lite wearable 工程的基础条件，但真机连接、ohpm、hdc 仍需要在 DevEco 和设备连接后复查。
+结论：本机已具备创建 DevEco Studio wearable / lite wearable 工程的基础条件，但真机连接、ohpm、hdc 仍需要在 DevEco 和设备连接后复查。若没有 WATCH / GT 真机，需要先在 DevEco Device Manager 下载 `Huawei_Wearable` API 24、466x466 的手表系统镜像，否则无法完成手表模拟器 H0。
 
 ## 目标工程
 
@@ -37,6 +39,26 @@ bash scripts/check-harmonyos-watch-env.sh
 | GT 手表端 | DevEco Studio `liteWearable` 或目标 GT 支持的轻量工程 | `huawei-gt-lite-demo/` |
 | HarmonyOS / 华为手机端 | DevEco Studio 手机应用工程 | `huawei-phone-sync-demo/harmonyos-phone-sync-demo/` |
 | Android 手机端 | Android Studio Kotlin 工程 | `huawei-phone-sync-demo/android-phone-sync-demo/` |
+
+## 生成导入包
+
+真实工程由 DevEco Studio / Android Studio 创建。创建前可先运行：
+
+```sh
+node huawei-validation/scripts/prepare-real-project-import.mjs
+```
+
+脚本会生成 `huawei-validation/generated/real-project-import/`：
+
+| 目录 | 用途 |
+| --- | --- |
+| `watch-wearable/src/` | WATCH Wearable 工程待迁入 ArkTS 文件 |
+| `gt-lite/src/` | GT liteWearable 工程待迁入 HTML / CSS / JS 文件 |
+| `harmonyos-phone-sync/src/` | HarmonyOS / 华为手机工程待迁入 ArkTS 同步骨架 |
+| `android-phone-sync/src/` | Android 手机工程待迁入 Kotlin 同步骨架 |
+| `shared/` | WATCH / GT payload、ACK、状态和 checklist |
+
+导入包只做文件整理，不代表真实工程已经可构建。
 
 ## 创建 WATCH 真实工程
 
@@ -56,6 +78,40 @@ bash scripts/check-harmonyos-watch-env.sh
    - `storedWaypointCount`
    - `checksum`
    - `nextAction`
+
+### WATCH 模拟器前置
+
+如果暂时没有 WATCH 5 / 4 真机，先完成模拟器准备：
+
+1. 打开 DevEco Studio。
+2. 打开 Device Manager。
+3. 选择 Local Emulator / Local Simulator。
+4. 创建 `Huawei_Wearable`，优先 API 24，分辨率 466x466。
+5. 等待 DevEco 下载 wearable/watch system image。
+6. 下载后重新运行：
+
+```sh
+bash scripts/check-huawei-watch-emulator.sh
+```
+
+当前状态：2026-06-06 已确认本机有 `Huawei_Wearable` API 20-24 模板，但尚未下载 watch system image。
+
+### H0 readiness 命令
+
+下载镜像、连接真机或创建真实工程后，运行：
+
+```sh
+bash huawei-validation/scripts/check-h0-readiness.sh
+```
+
+该脚本检查：
+
+1. DevEco Studio 与 Emulator 是否存在。
+2. 是否能在模板中找到 `Huawei_Wearable`。
+3. 本机是否已下载 wearable/watch system image。
+4. `hdc list targets` 是否能返回。
+5. 真实工程导入包是否能生成。
+6. 本地 WATCH / GT payload 流程是否仍通过。
 
 ## 创建 GT 真实工程
 
