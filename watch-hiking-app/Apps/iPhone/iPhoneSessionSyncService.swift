@@ -7,6 +7,9 @@ final class iPhoneSessionSyncService: NSObject, ObservableObject {
     @Published private(set) var receivedSessions: [ReceivedSessionRecord] = []
     @Published private(set) var lastSyncMessage = "等待 Watch 回传"
     @Published private(set) var isWatchConnectivityAvailable = WCSession.isSupported()
+    @Published private(set) var isWatchConnected = false
+    @Published private(set) var watchConnectionTitle = "检查 Watch"
+    @Published private(set) var watchConnectionDetail = "正在读取 Apple Watch 状态"
 
     private let receiver = iPhoneSessionSyncReceiver()
     private let store: iPhoneReceivedSessionStore
@@ -24,11 +27,67 @@ final class iPhoneSessionSyncService: NSObject, ObservableObject {
     func start() {
         guard let session else {
             lastSyncMessage = "当前设备不支持 WatchConnectivity"
+            isWatchConnected = false
+            watchConnectionTitle = "当前设备不支持"
+            watchConnectionDetail = "这台设备不能与 Apple Watch 通信"
             return
         }
+        updateWatchConnectionState(session)
         session.activate()
         Task {
             await reloadStoredSessions()
+        }
+    }
+
+    private func updateCurrentWatchConnectionState() {
+        guard let session else {
+            isWatchConnected = false
+            watchConnectionTitle = "当前设备不支持"
+            watchConnectionDetail = "这台设备不能与 Apple Watch 通信"
+            return
+        }
+        updateWatchConnectionState(session)
+    }
+
+    private func updateWatchConnectionState(_ session: WCSession) {
+        isWatchConnectivityAvailable = WCSession.isSupported()
+
+        guard isWatchConnectivityAvailable else {
+            isWatchConnected = false
+            watchConnectionTitle = "当前设备不支持"
+            watchConnectionDetail = "这台设备不能与 Apple Watch 通信"
+            return
+        }
+
+        guard session.activationState == .activated else {
+            isWatchConnected = false
+            watchConnectionTitle = "正在连接 Watch"
+            watchConnectionDetail = "WatchConnectivity 正在激活"
+            return
+        }
+
+        guard session.isPaired else {
+            isWatchConnected = false
+            watchConnectionTitle = "未配对 Watch"
+            watchConnectionDetail = "请先在 iPhone 上配对 Apple Watch"
+            return
+        }
+
+        guard session.isWatchAppInstalled else {
+            isWatchConnected = false
+            watchConnectionTitle = "Watch App 未安装"
+            watchConnectionDetail = "请先把 Watch App 安装到 Apple Watch"
+            return
+        }
+
+        if session.isReachable {
+            isWatchConnected = true
+            watchConnectionTitle = "Watch 已连接"
+            watchConnectionDetail = "可以实时通信；结束后也会继续支持可靠回传"
+        } else {
+            isWatchConnected = false
+            watchConnectionTitle = "Watch 未实时连接"
+            watchConnectionDetail = "可靠回传会排队，Watch 靠近并打开后继续同步"
         }
     }
 
@@ -113,6 +172,7 @@ extension iPhoneSessionSyncService: WCSessionDelegate {
             } else {
                 lastSyncMessage = activationState == .activated ? "等待 Watch 回传" : "WatchConnectivity 未激活"
             }
+            updateCurrentWatchConnectionState()
         }
     }
 
@@ -120,6 +180,18 @@ extension iPhoneSessionSyncService: WCSessionDelegate {
 
     nonisolated func sessionDidDeactivate(_ session: WCSession) {
         session.activate()
+    }
+
+    nonisolated func sessionReachabilityDidChange(_ session: WCSession) {
+        Task { @MainActor in
+            updateCurrentWatchConnectionState()
+        }
+    }
+
+    nonisolated func sessionWatchStateDidChange(_ session: WCSession) {
+        Task { @MainActor in
+            updateCurrentWatchConnectionState()
+        }
     }
 
     nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {

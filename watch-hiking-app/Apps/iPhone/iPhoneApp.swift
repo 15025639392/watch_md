@@ -99,25 +99,19 @@ struct RouteListView: View {
                 AppTheme.background.ignoresSafeArea()
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
-                        HeaderActions(isImportingGPX: $isImportingGPX)
-
-                        Picker("路线筛选", selection: $selectedFilter) {
-                            ForEach(RouteFilter.allCases) { filter in
-                                Text(filter.title).tag(filter)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-
                         NavigationLink {
                             WatchSessionSyncListView()
                         } label: {
-                            WatchSessionSyncStatusCard(
-                                message: sessionSyncService.lastSyncMessage,
+                            WatchHubStatusCard(
+                                connectionTitle: sessionSyncService.watchConnectionTitle,
                                 receivedCount: sessionSyncService.receivedSessions.count,
-                                isAvailable: sessionSyncService.isWatchConnectivityAvailable
+                                isConnected: sessionSyncService.isWatchConnected,
+                                activeSyncCount: sessionSyncService.receivedSessions.filter { $0.displayState != .completed }.count
                             )
                         }
                         .buttonStyle(.plain)
+
+                        RouteFilterBar(selection: $selectedFilter)
 
                         VStack(spacing: 0) {
                             switch selectedFilter {
@@ -249,59 +243,70 @@ enum RouteFilter: String, CaseIterable, Identifiable {
     }
 }
 
-struct HeaderActions: View {
-    @Binding var isImportingGPX: Bool
+struct RouteFilterBar: View {
+    @Binding var selection: RouteFilter
 
     var body: some View {
-        HStack(spacing: 10) {
-            Label("搜索路线名称、编号或区域", systemImage: "magnifyingglass")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 12)
-                .frame(height: 38)
-                .background(AppTheme.secondaryFill)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-
-            Button {
-                isImportingGPX = true
-            } label: {
-                Image(systemName: "plus")
-                    .font(.headline)
-                    .frame(width: 38, height: 38)
+        HStack(spacing: 6) {
+            ForEach(RouteFilter.allCases) { filter in
+                Button {
+                    withAnimation(.easeInOut(duration: 0.16)) {
+                        selection = filter
+                    }
+                } label: {
+                    Text(filter.title)
+                        .font(.subheadline.weight(selection == filter ? .semibold : .regular))
+                        .foregroundStyle(selection == filter ? AppTheme.blue : .secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 34)
+                        .background(selection == filter ? AppTheme.blue.opacity(0.10) : Color.clear)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(AppTheme.blue)
-            .background(AppTheme.panel)
-            .clipShape(Circle())
+        }
+        .padding(4)
+        .background(AppTheme.panel)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(AppTheme.line.opacity(0.75), lineWidth: 1)
         }
     }
 }
 
-struct WatchSessionSyncStatusCard: View {
-    let message: String
+struct WatchHubStatusCard: View {
+    let connectionTitle: String
     let receivedCount: Int
-    let isAvailable: Bool
+    let isConnected: Bool
+    let activeSyncCount: Int
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: isAvailable ? "applewatch.radiowaves.left.and.right" : "applewatch.slash")
+            Image(systemName: isConnected ? "applewatch.radiowaves.left.and.right" : "applewatch.slash")
                 .font(.headline)
-                .foregroundStyle(isAvailable ? AppTheme.blue : .secondary)
-                .frame(width: 32, height: 32)
+                .foregroundStyle(isConnected ? AppTheme.green : AppTheme.orange)
+                .frame(width: 34, height: 34)
                 .background(AppTheme.secondaryFill)
                 .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(message)
+                Text(connectionTitle)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
-                    .lineLimit(2)
-                Text("已接收 \(receivedCount) 条 Watch 会话")
+                    .lineLimit(1)
+                Text(activeSyncCount > 0 ? "\(activeSyncCount) 条待处理回传" : "\(receivedCount) 条 Watch 会话")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if activeSyncCount > 0 {
+                StatusPill(text: "\(activeSyncCount)", style: .warning)
+            }
 
             Image(systemName: "chevron.right")
                 .font(.footnote.weight(.semibold))
@@ -310,65 +315,159 @@ struct WatchSessionSyncStatusCard: View {
         .padding(12)
         .background(AppTheme.panel)
         .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(AppTheme.line.opacity(0.75), lineWidth: 1)
+        }
+    }
+}
+
+struct WatchHubMetric: View {
+    let title: String
+    let value: String
+    let style: PillStyle
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(value)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(style.foreground)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(9)
+        .background(style.background)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 
 struct WatchSessionSyncListView: View {
     @EnvironmentObject private var sessionSyncService: iPhoneSessionSyncService
 
+    private var pendingRecords: [ReceivedSessionRecord] {
+        sessionSyncService.receivedSessions.filter { $0.displayState != .completed }
+    }
+
+    private var completedRecords: [ReceivedSessionRecord] {
+        sessionSyncService.receivedSessions.filter { $0.displayState == .completed }
+    }
+
     var body: some View {
         ZStack {
             AppTheme.background.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    WatchSessionSyncStatusCard(
+                    WatchCenterSummaryCard(
                         message: sessionSyncService.lastSyncMessage,
+                        connectionTitle: sessionSyncService.watchConnectionTitle,
+                        connectionDetail: sessionSyncService.watchConnectionDetail,
                         receivedCount: sessionSyncService.receivedSessions.count,
-                        isAvailable: sessionSyncService.isWatchConnectivityAvailable
+                        isConnected: sessionSyncService.isWatchConnected,
+                        activeSyncCount: pendingRecords.count
                     )
 
                     if sessionSyncService.receivedSessions.isEmpty {
                         ContentUnavailableView {
-                            Label("暂无 Watch 回传", systemImage: "applewatch")
+                            Label("Watch 等待徒步记录", systemImage: "applewatch")
                         } description: {
-                            Text("徒步结束后，Watch 会把轨迹、事件和摘要回传到这里。")
+                            Text("路线同步后请在 Watch 上开始；结束后轨迹、事件和摘要会回到这里。")
                         }
                         .padding(.top, 80)
                     } else {
-                        ForEach(SessionSyncDisplayState.allCases) { state in
-                            let records = sessionSyncService.receivedSessions.filter { $0.displayState == state }
-                            if !records.isEmpty {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text(state.sectionTitle)
-                                        .font(.headline)
-                                        .padding(.horizontal, 2)
-
-                                    VStack(spacing: 0) {
-                                        ForEach(records, id: \.sessionId) { record in
-                                            NavigationLink {
-                                                WatchSessionSyncDetailView(record: record)
-                                            } label: {
-                                                WatchSessionRecordRow(record: record)
-                                            }
-                                            .buttonStyle(.plain)
-
-                                            if record.sessionId != records.last?.sessionId {
-                                                Divider().padding(.leading, 54)
-                                            }
-                                        }
-                                    }
-                                    .background(AppTheme.panel)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                                }
-                            }
+                        if !pendingRecords.isEmpty {
+                            WatchSessionRecordSection(title: "待处理", records: pendingRecords)
+                        }
+                        if !completedRecords.isEmpty {
+                            WatchSessionRecordSection(title: "已完成", records: completedRecords)
                         }
                     }
                 }
                 .padding()
             }
         }
-        .navigationTitle("Watch 回传")
+        .navigationTitle("Watch 中枢")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+struct WatchSessionRecordSection: View {
+    let title: String
+    let records: [ReceivedSessionRecord]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.headline)
+                .padding(.horizontal, 2)
+
+            VStack(spacing: 0) {
+                ForEach(records, id: \.sessionId) { record in
+                    NavigationLink {
+                        WatchSessionSyncDetailView(record: record)
+                    } label: {
+                        WatchSessionRecordRow(record: record)
+                    }
+                    .buttonStyle(.plain)
+
+                    if record.sessionId != records.last?.sessionId {
+                        Divider().padding(.leading, 54)
+                    }
+                }
+            }
+            .background(AppTheme.panel)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+    }
+}
+
+struct WatchCenterSummaryCard: View {
+    let message: String
+    let connectionTitle: String
+    let connectionDetail: String
+    let receivedCount: Int
+    let isConnected: Bool
+    let activeSyncCount: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: isConnected ? "applewatch.radiowaves.left.and.right" : "applewatch.slash")
+                    .font(.headline)
+                    .foregroundStyle(isConnected ? AppTheme.green : AppTheme.orange)
+                    .frame(width: 34, height: 34)
+                    .background(AppTheme.secondaryFill)
+                    .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(connectionTitle)
+                        .font(.subheadline.weight(.semibold))
+                    Text(connectionDetail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+
+                Spacer()
+            }
+
+            HStack(spacing: 8) {
+                WatchHubMetric(title: "连接", value: isConnected ? "已连接" : "未连接", style: isConnected ? .ok : .warning)
+                WatchHubMetric(title: "回传", value: "\(receivedCount) 条", style: .neutral)
+                WatchHubMetric(title: "待处理", value: "\(activeSyncCount)", style: activeSyncCount == 0 ? .ok : .warning)
+            }
+
+            Text(message)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+        }
+        .padding(12)
+        .background(AppTheme.panel)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 
@@ -394,10 +493,10 @@ struct WatchSessionRecordRow: View {
                     StatusPill(text: record.displayState.title, style: record.displayState.pillStyle)
                 }
                 HStack {
-                    Text("\(record.trackPoints.count)/\(record.expectedTrackPointCount) 点")
-                    Text("\(record.events.count) 事件")
+                    Text(record.completionText)
+                    Text("\(record.events.count) 个事件")
                     if !record.missingTrackRanges.isEmpty {
-                        Text("\(record.missingTrackRanges.count) 段缺口")
+                        Text("\(record.missingTrackRanges.count) 段待补传")
                     }
                 }
                 .font(.caption)
@@ -440,8 +539,8 @@ struct WatchSessionSyncDetailView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("回传完整性")
                             .font(.headline)
-                        DetailStatusRow(title: "轨迹点", value: "\(record.trackPoints.count)/\(record.expectedTrackPointCount)")
-                        DetailStatusRow(title: "事件", value: "\(record.events.count)")
+                        DetailStatusRow(title: "轨迹", value: record.completionText)
+                        DetailStatusRow(title: "事件", value: "\(record.events.count) 个")
                         DetailStatusRow(title: "摘要", value: record.summary == nil ? "未收到" : "已收到")
                         DetailStatusRow(title: "状态", value: record.displayState.title)
                     }
@@ -456,7 +555,7 @@ struct WatchSessionSyncDetailView: View {
                             DetailStatusRow(title: "轨迹缺口", value: "无")
                         } else {
                             ForEach(record.missingTrackRanges, id: \.displayText) { range in
-                                DetailStatusRow(title: "sequence", value: range.displayText)
+                                DetailStatusRow(title: "等待补传", value: range.userFacingText)
                             }
                         }
                     }
@@ -617,7 +716,7 @@ struct SyncedRouteCard: View {
             }
             .font(.caption)
             .foregroundStyle(.secondary)
-            StatusPill(text: "模拟同步成功", style: .ok)
+            StatusPill(text: "Watch 已就绪", style: .ok)
         }
     }
 }
@@ -876,7 +975,7 @@ struct RouteDetailSheet: View {
             HStack {
                 StatusPill(text: viewModel.statusText, style: viewModel.state.pillStyle)
                 Spacer()
-                Text("今天 09:42")
+                Text(viewModel.syncStageText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -889,6 +988,7 @@ struct RouteDetailSheet: View {
                 DetailStatusRow(title: "终点", value: "已识别")
                 DetailStatusRow(title: "路线质量", value: "\(installedRoute.route.originalPointCount) 点 · \(installedRoute.turnPoints.count) 转向")
             }
+            ReadinessChecklist(viewModel: viewModel)
             Button {
                 Task {
                     if await viewModel.sync(installedRoute) {
@@ -930,6 +1030,23 @@ struct DetailStatusRow: View {
                 .fontWeight(.semibold)
         }
         .font(.caption)
+    }
+}
+
+struct ReadinessChecklist: View {
+    @ObservedObject var viewModel: RouteDetailViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Watch 出发检查")
+                .font(.subheadline.weight(.semibold))
+            DetailStatusRow(title: "路线同步", value: viewModel.routeReadinessValue)
+            DetailStatusRow(title: "连接状态", value: "模拟通道可用")
+            DetailStatusRow(title: "定位 / 健康权限", value: "开始前由 Watch 确认")
+        }
+        .padding(10)
+        .background(AppTheme.tertiaryFill)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 }
 
@@ -1241,6 +1358,24 @@ final class RouteDetailViewModel: ObservableObject {
         }
     }
 
+    var syncStageText: String {
+        switch state {
+        case .notSynced: "待同步"
+        case .manifestSent, .readyForPayload, .payloadTransferred: "同步中"
+        case .installed: "已就绪"
+        case .failed: "需重试"
+        }
+    }
+
+    var routeReadinessValue: String {
+        switch state {
+        case .notSynced: "未同步"
+        case .manifestSent, .readyForPayload, .payloadTransferred: "同步中"
+        case .installed: "Watch 已就绪"
+        case .failed: "同步失败"
+        }
+    }
+
     var watchReadinessText: String {
         if let errorMessage {
             return errorMessage
@@ -1250,7 +1385,7 @@ final class RouteDetailViewModel: ObservableObject {
 
     var buttonTitle: String {
         switch state {
-        case .installed: "重新同步"
+        case .installed: "重新同步到 Watch"
         case .failed: "重试同步"
         default: "同步到 Watch"
         }
@@ -1390,6 +1525,17 @@ private extension ReceivedSessionRecord {
         return max(status?.trackPointCount ?? 0, trackPoints.count)
     }
 
+    var completionText: String {
+        let expected = expectedTrackPointCount
+        if expected == 0 {
+            return trackPoints.isEmpty ? "等待轨迹" : "已收到 \(trackPoints.count) 个轨迹点"
+        }
+        if missingTrackRanges.isEmpty && trackPoints.count >= expected {
+            return "轨迹完整"
+        }
+        return "已收到 \(trackPoints.count)/\(expected) 个轨迹点"
+    }
+
     var missingTrackRanges: [SequenceRange] {
         let expected = expectedTrackPointCount
         guard expected > 0 else { return [] }
@@ -1441,6 +1587,13 @@ private extension ReceivedSessionRecord {
 private extension SequenceRange {
     var displayText: String {
         startSequence == endSequence ? "\(startSequence)" : "\(startSequence)-\(endSequence)"
+    }
+
+    var userFacingText: String {
+        if startSequence == endSequence {
+            return "第 \(startSequence + 1) 个轨迹点"
+        }
+        return "第 \(startSequence + 1)-\(endSequence + 1) 个轨迹点"
     }
 }
 
