@@ -213,13 +213,32 @@ buildscript {
 
 | 工程 | 用途 | 说明 |
 | --- | --- | --- |
-| `huawei-watch-demo` | WATCH 数字系列完整手表 App | 使用 `Wearable`、ArkTS、ArkUI，验证完整路线页、运动页、定位、震动和后台 |
-| `huawei-gt-lite-demo` | GT 系列轻量手表 App | 使用 `liteWearable` 或兼容 JS 的类 Web 范式；若目标 GT 不支持安装，则只保留为验证记录 |
-| `huawei-phone-sync-demo` | 手机侧 Wear Engine 通信 | 手机管理路线和 GPX，分别向 WATCH / GT Demo 下发路线和接收 ACK |
+| `huawei-watch-demo` | WATCH 数字系列完整手表 App | 手表端，使用 `Wearable`、ArkTS、ArkUI、`.ets`，验证完整路线页、运动页、定位、震动和后台 |
+| `huawei-gt-lite-demo` | GT 系列轻量手表 App | 手表端，使用 `liteWearable` 或兼容 JS 的类 Web 范式；若目标 GT 不支持安装，则只保留为验证记录 |
+| `huawei-phone-sync-demo/harmonyos-phone-sync-demo` | HarmonyOS / 华为手机侧 Wear Engine 通信 | 手机端 P0，使用 DevEco Studio、ArkTS / ArkUI 和 Wear Engine，占位负责向 WATCH / GT Demo 下发路线和接收 ACK |
+| `huawei-phone-sync-demo/android-phone-sync-demo` | Android 手机侧 Wear Engine 通信 | 手机端 P1，使用 Kotlin `.kt` 和 HMS Core Wear Engine Android SDK，占位负责向 WATCH / GT Demo 下发路线和接收 ACK |
 
 路线模型、GPX 解析、偏航规则和通信 payload 可以共享；手表端工程不要默认共享。是否能最终合并成一个发布包，需要等 WATCH / GT 真机安装、AGC 应用类型和 AppGallery 分发路径验证后再判断。
 
 当前仓库已在 `huawei-validation/` 下放置这些验证工程骨架。真实开发时仍需要用 DevEco Studio / Android Studio 创建可编译工程，并按目标设备迁入骨架文件。
+
+为了先跑通流程，当前优先使用本地模拟脚本：
+
+```sh
+node huawei-validation/scripts/run-local-flow-demo.mjs
+```
+
+该脚本不需要申请 Wear Engine 或 Health Kit，只验证路线 payload、WATCH ACK、GT ACK 和状态回传。等本地协议稳定后，再把手机侧 `local-simulation` 替换成真实 Wear Engine SDK 调用。
+
+手机侧骨架已按系统拆线，并在两条线内都保留 `RouteTransport`、`LocalSimulationTransport` 和 `WearEngineRouteTransport`。真实接入时，HarmonyOS / 华为手机线补齐 ArkTS 版 `WearEngineRouteTransport`；Android 手机线补齐 Kotlin 版 `WearEngineRouteTransport`；两条线复用同一套 payload、ACK 和状态结构，避免改动 WATCH / GT 两条手表端验证工程。
+
+手机侧验证矩阵：
+
+| 手机线 | 优先级 | 说明 |
+| --- | --- | --- |
+| HarmonyOS / 华为手机 | P0 | 华为生态能力最完整，优先验证 Wear Engine、Huawei Health、HMS Core、AppGallery 路径 |
+| Android 手机 | P1 | 验证非华为 Android 的 HMS Core、后台、通知、连接稳定性和地区差异 |
+| iPhone | P2 | 只做基础兼容观察，不作为深度联动主路径 |
 
 ## 官方入口
 

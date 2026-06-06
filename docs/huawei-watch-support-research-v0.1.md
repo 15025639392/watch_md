@@ -276,11 +276,14 @@
 
 | 工程 | 目标设备 | 角色 | 技术路径 |
 | --- | --- | --- | --- |
-| `huawei-watch-demo` | WATCH 5 / WATCH 4 | 完整手表 App 验证工程 | `Wearable`、ArkTS、ArkUI |
-| `huawei-gt-lite-demo` | WATCH GT 6 / GT 5 | 轻量手表 App 或轻量导航验证工程 | `liteWearable`、兼容 JS 的类 Web 范式；若机型不支持则转手机协同 |
-| `huawei-phone-sync-demo` | 华为手机 / 非华为 Android | 手机侧路线管理与通信验证工程 | Android / HarmonyOS 手机 App + Wear Engine |
+| `huawei-watch-demo` | WATCH 5 / WATCH 4 | 完整手表 App 验证工程 | 手表端，`Wearable`、ArkTS、ArkUI、`.ets` |
+| `huawei-gt-lite-demo` | WATCH GT 6 / GT 5 | 轻量手表 App 或轻量导航验证工程 | 手表端，`liteWearable`、兼容 JS 的类 Web 范式；若机型不支持则转手机协同 |
+| `huawei-phone-sync-demo/harmonyos-phone-sync-demo` | HarmonyOS / 华为手机 | 手机侧路线管理与通信验证工程 | 手机端 P0，DevEco Studio、ArkTS / ArkUI、Wear Engine |
+| `huawei-phone-sync-demo/android-phone-sync-demo` | 非华为 Android / 通用 Android | 手机侧路线管理与通信验证工程 | 手机端 P1，Kotlin `.kt`、HMS Core Wear Engine Android SDK |
 
 这三个工程可以共享路线模型、GPX 解析、偏航计算和同步协议设计，但不要默认共享同一个手表端工程。WATCH 与 GT 的安装路径、应用形态、语言、后台能力和上架入口都需要分别验证。
+
+手机侧也不要混成一个实现。HarmonyOS / 华为手机线作为 P0，因为它最可能拿到完整 Huawei Health、HMS Core、AppGallery 和 Wear Engine 体验；非华为 Android 作为 P1，用来验证 HMS Core 安装、后台权限、通知权限、地区服务和连接稳定性；iPhone 只作为 P2 基础兼容观察。当前仓库已把手机侧拆为 HarmonyOS 与 Android 两个子骨架。
 
 当前仓库已在 `huawei-validation/` 下落验证工程骨架。它们只是预研骨架，不代表已完成 DevEco 可编译工程或真机验证。
 

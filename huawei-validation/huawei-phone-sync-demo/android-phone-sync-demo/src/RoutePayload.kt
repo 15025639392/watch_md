@@ -35,3 +35,14 @@ data class RouteAck(
     val storedPointCount: Int
 )
 
+data class WatchStatus(
+    val type: String = "watchStatus",
+    val protocolVersion: String,
+    val deviceLine: String,
+    val recordingState: String,
+    val batteryPercent: Int,
+    val isWorn: Boolean,
+    val isCharging: Boolean,
+    val lastRouteId: String,
+    val updatedAt: String
+)
