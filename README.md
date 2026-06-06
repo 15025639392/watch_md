@@ -33,6 +33,7 @@
 - [WatchOS 徒步 App MVP 开发切分](./docs/mvp-development-slices-v0.1.md)
 - [WatchOS 能力使用取舍](./docs/watchos-capability-decisions-v0.1.md)
 - [WatchOS 徒步 App 开发提示词与技术实施计划](./docs/watchos-development-prompt-implementation-plan-v0.1.md)
+- [WatchOS 徒步 App 开发与上架流程](./docs/watchos-development-release-flow-v0.1.md)
 - [WatchOS 徒步 App 产品原型 v0.1](./docs/prototypes/watchos-product-prototype-v0.1.html)
 - [iPhone 徒步 App 产品原型 v0.1](./docs/prototypes/iphone-product-prototype-v0.1.html)
 - [当前 UI 与操作逻辑对齐说明](./docs/current-ui-operation-alignment-v0.1.md)
@@ -60,8 +61,9 @@
 2. 再读产品定义，明确端分工、目标用户和 MVP 范围。
 3. 然后读开发切分，按 slice 推进实现。
 4. 开始编码前读数据模型、同步协议、iOS / watchOS 操作与数据联动、地图页、偏航检测和完整会话流程。
-5. 修改 UI、按钮、页面顺序、同步状态或会话操作前，先读当前 UI 与操作逻辑对齐说明，区分已落代码、临时实现和目标规格。
-6. 需要验证华为路径时，阅读华为开发环境文档并运行自检脚本。
+5. 准备真机测试、TestFlight 或 App Store 上架前，读开发与上架流程，确认账号、签名、权限、隐私、审核和截图材料。
+6. 修改 UI、按钮、页面顺序、同步状态或会话操作前，先读当前 UI 与操作逻辑对齐说明，区分已落代码、临时实现和目标规格。
+7. 需要验证华为路径时，阅读华为开发环境文档并运行自检脚本。
 
 ## 华为开发环境自检
 

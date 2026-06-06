@@ -26,6 +26,7 @@
 - `docs/mvp-development-slices-v0.1.md`：MVP 开发切片。
 - `docs/watchos-capability-decisions-v0.1.md`：watchOS 能力使用、不使用和延期评估的取舍说明。
 - `docs/watchos-development-prompt-implementation-plan-v0.1.md`：可复制给 Codex 的开发提示词与实施计划。
+- `docs/watchos-development-release-flow-v0.1.md`：开发准备、真机验证、TestFlight、App Store 上架和发布后维护流程。
 - `docs/current-ui-operation-alignment-v0.1.md`：当前 UI、操作入口、临时实现和目标规格边界，避免后续 AI 误解当前代码状态。
 - `docs/hiking-data-model-v0.1.md`：路线、会话、轨迹、事件和同步对象模型。
 - `docs/watchconnectivity-sync-protocol-v0.1.md`：iPhone 与 Apple Watch 的同步协议。
