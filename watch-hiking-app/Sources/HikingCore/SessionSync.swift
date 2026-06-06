@@ -66,6 +66,8 @@ public struct LiveTrackSnapshot: Codable, Equatable, Sendable {
     public var routeMatchStatus: RouteMatchStatus
     public var distanceFromRouteMeters: Double?
     public var routeProgressMeters: Double?
+    public var projectedRouteCoordinate: GeoCoordinate?
+    public var bearingToRouteDegrees: Double?
 
     public init(
         sessionId: String,
@@ -81,7 +83,9 @@ public struct LiveTrackSnapshot: Codable, Equatable, Sendable {
         workoutDistanceMeters: Double? = nil,
         routeMatchStatus: RouteMatchStatus = .unknown,
         distanceFromRouteMeters: Double? = nil,
-        routeProgressMeters: Double? = nil
+        routeProgressMeters: Double? = nil,
+        projectedRouteCoordinate: GeoCoordinate? = nil,
+        bearingToRouteDegrees: Double? = nil
     ) {
         self.sessionId = sessionId
         self.routeId = routeId
@@ -97,6 +101,8 @@ public struct LiveTrackSnapshot: Codable, Equatable, Sendable {
         self.routeMatchStatus = routeMatchStatus
         self.distanceFromRouteMeters = distanceFromRouteMeters
         self.routeProgressMeters = routeProgressMeters
+        self.projectedRouteCoordinate = projectedRouteCoordinate
+        self.bearingToRouteDegrees = bearingToRouteDegrees
     }
 }
 
@@ -174,6 +180,8 @@ public enum SessionSyncCodec {
         routeMatchStatus: LiveTrackSnapshot.RouteMatchStatus = .unknown,
         distanceFromRouteMeters: Double? = nil,
         routeProgressMeters: Double? = nil,
+        projectedRouteCoordinate: GeoCoordinate? = nil,
+        bearingToRouteDegrees: Double? = nil,
         recentPointLimit: Int = 80
     ) throws -> SyncEnvelope<LiveTrackSnapshot> {
         let recentPoints = Array(trackPoints.sorted { $0.sequence < $1.sequence }.suffix(max(1, recentPointLimit)))
@@ -191,7 +199,9 @@ public enum SessionSyncCodec {
             workoutDistanceMeters: workoutDistanceMeters,
             routeMatchStatus: routeMatchStatus,
             distanceFromRouteMeters: distanceFromRouteMeters,
-            routeProgressMeters: routeProgressMeters
+            routeProgressMeters: routeProgressMeters,
+            projectedRouteCoordinate: projectedRouteCoordinate,
+            bearingToRouteDegrees: bearingToRouteDegrees
         )
         let data = try RouteSyncCodec.encoder.encode(payload)
         return SyncEnvelope(

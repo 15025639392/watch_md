@@ -696,7 +696,7 @@ struct WatchLiveTrackCard: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(snapshot == nil ? "等待 Watch 位置" : snapshot?.watchTopStatusText ?? "Watch 实时轨迹")
                         .font(.subheadline.weight(.semibold))
-                    Text(snapshot == nil ? connectionDetail : "\(connectionTitle) · \(snapshot!.updatedAt.relativeShortText)")
+                    Text(snapshot?.watchReturnedAtText ?? connectionDetail)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
@@ -1480,16 +1480,14 @@ private struct SessionTrackMap: UIViewRepresentable {
         mapView.delegate = context.coordinator
         mapView.showsCompass = true
         mapView.showsScale = true
-        mapView.preferredConfiguration = MKStandardMapConfiguration(elevationStyle: .flat)
-        mapView.pointOfInterestFilter = .includingAll
+        mapView.mapType = .hybrid
         return mapView
     }
 
     func updateUIView(_ mapView: MKMapView, context: Context) {
         context.coordinator.trackOverlay = nil
         context.coordinator.endpointMode = endpointMode
-        mapView.preferredConfiguration = MKStandardMapConfiguration(elevationStyle: .flat)
-        mapView.pointOfInterestFilter = .includingAll
+        mapView.mapType = .hybrid
         mapView.removeOverlays(mapView.overlays)
         mapView.removeAnnotations(mapView.annotations)
 
@@ -2131,7 +2129,21 @@ private extension LiveTrackSnapshot {
 
     var watchBottomHintText: String {
         if status == .paused { return "记录暂停中" }
-        if routeMatchStatus == .offRoute { return "回到路线" }
+        if routeMatchStatus == .offRoute {
+            var parts = [String]()
+            if let bearingToRouteDegrees {
+                parts.append("向\(bearingToRouteDegrees.cardinalDirectionText)回到路线")
+            } else {
+                parts.append("回到路线")
+            }
+            if let distanceFromRouteMeters {
+                parts.append("距路线 \(Formatters.distance(distanceFromRouteMeters))")
+            }
+            if let projectedRouteCoordinate {
+                parts.append(projectedRouteCoordinate.compactCoordinateText)
+            }
+            return parts.joined(separator: " · ")
+        }
         if let routeProgressMeters {
             return "进度 \(Formatters.distance(routeProgressMeters))"
         }
@@ -2148,9 +2160,17 @@ private extension LiveTrackSnapshot {
             return .danger
         }
     }
+
+    var watchReturnedAtText: String {
+        "Watch 回传 \(updatedAt.timeOfDayText) · \(updatedAt.relativeShortText)"
+    }
 }
 
 private extension Date {
+    var timeOfDayText: String {
+        DateFormatters.watchHubTime.string(from: self)
+    }
+
     var relativeShortText: String {
         let seconds = max(0, Int(Date().timeIntervalSince(self)))
         if seconds < 60 { return "\(seconds)s 前" }
@@ -2158,6 +2178,30 @@ private extension Date {
         if minutes < 60 { return "\(minutes)m 前" }
         let hours = minutes / 60
         return "\(hours)h 前"
+    }
+}
+
+private enum DateFormatters {
+    static let watchHubTime: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter
+    }()
+}
+
+private extension Double {
+    var cardinalDirectionText: String {
+        let directions = ["北", "东北", "东", "东南", "南", "西南", "西", "西北"]
+        let normalized = truncatingRemainder(dividingBy: 360)
+        let positive = normalized < 0 ? normalized + 360 : normalized
+        let index = Int(((positive + 22.5) / 45).rounded(.down)) % directions.count
+        return directions[index]
+    }
+}
+
+private extension GeoCoordinate {
+    var compactCoordinateText: String {
+        String(format: "%.5f, %.5f", latitude, longitude)
     }
 }
 

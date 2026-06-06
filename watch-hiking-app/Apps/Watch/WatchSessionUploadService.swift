@@ -64,7 +64,11 @@ final class WatchSessionUploadService: NSObject {
                 workoutDistanceMeters: workoutMetrics.distanceMeters,
                 routeMatchStatus: routeMatch.liveSnapshotStatus,
                 distanceFromRouteMeters: routeMatch.distanceFromRouteMeters,
-                routeProgressMeters: routeMatch.routeProgressMeters
+                routeProgressMeters: routeMatch.routeProgressMeters,
+                projectedRouteCoordinate: routeMatch.projectedCoordinate.map {
+                    GeoCoordinate(latitude: $0.latitude, longitude: $0.longitude)
+                },
+                bearingToRouteDegrees: routeMatch.bearingToRouteDegrees
             )
             transfer(try RouteSyncCodec.encoder.encode(envelope), prefersRealtime: true)
         } catch {
