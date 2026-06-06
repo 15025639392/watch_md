@@ -1567,6 +1567,8 @@ private struct SessionTrackMap: UIViewRepresentable {
         mapView.showsCompass = true
         mapView.showsScale = true
         mapView.mapType = .hybrid
+        mapView.isScrollEnabled = true
+        mapView.isZoomEnabled = true
         return mapView
     }
 
@@ -1593,15 +1595,23 @@ private struct SessionTrackMap: UIViewRepresentable {
             let polyline = MKPolyline(coordinates: coordinates, count: coordinates.count)
             context.coordinator.trackOverlay = polyline
             mapView.addOverlay(polyline)
-            let visibleRect = routeCoordinates.count >= 2
-                ? polyline.boundingMapRect.union(MKPolyline(coordinates: routeCoordinates, count: routeCoordinates.count).boundingMapRect)
-                : polyline.boundingMapRect
-            mapView.setVisibleMapRect(visibleRect, edgePadding: UIEdgeInsets(top: 90, left: 30, bottom: 220, right: 30), animated: false)
+            if context.coordinator.shouldAutoFitVisibleRegion {
+                let visibleRect = routeCoordinates.count >= 2
+                    ? polyline.boundingMapRect.union(MKPolyline(coordinates: routeCoordinates, count: routeCoordinates.count).boundingMapRect)
+                    : polyline.boundingMapRect
+                context.coordinator.isSettingVisibleRegion = true
+                mapView.setVisibleMapRect(visibleRect, edgePadding: UIEdgeInsets(top: 90, left: 30, bottom: 220, right: 30), animated: false)
+                context.coordinator.isSettingVisibleRegion = false
+            }
         } else {
-            mapView.setRegion(
-                MKCoordinateRegion(center: first, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)),
-                animated: false
-            )
+            if context.coordinator.shouldAutoFitVisibleRegion {
+                context.coordinator.isSettingVisibleRegion = true
+                mapView.setRegion(
+                    MKCoordinateRegion(center: first, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)),
+                    animated: false
+                )
+                context.coordinator.isSettingVisibleRegion = false
+            }
         }
 
         if let current = coordinates.last, let projectedRouteCoordinate {
@@ -1629,6 +1639,21 @@ private struct SessionTrackMap: UIViewRepresentable {
         weak var routeOverlay: MKPolyline?
         weak var offRouteOverlay: MKPolyline?
         var endpointMode: EndpointMode = .startAndEnd
+        var lastUserAdjustedVisibleRegionAt: Date?
+        var isSettingVisibleRegion = false
+        private let manualVisibleRegionHoldSeconds: TimeInterval = 180
+
+        var shouldAutoFitVisibleRegion: Bool {
+            guard let lastUserAdjustedVisibleRegionAt else { return true }
+            return Date().timeIntervalSince(lastUserAdjustedVisibleRegionAt) >= manualVisibleRegionHoldSeconds
+        }
+
+        func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
+            guard !isSettingVisibleRegion else { return }
+            if mapView.gestureRecognizers?.contains(where: { $0.state == .began || $0.state == .changed }) == true {
+                lastUserAdjustedVisibleRegionAt = Date()
+            }
+        }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             guard let polyline = overlay as? MKPolyline else {

@@ -140,6 +140,10 @@ final class WatchRouteCardViewModel: ObservableObject {
             trackPoints = snapshot.trackPoints
             trackPointCount = snapshot.trackPoints.count
             currentCoordinate = snapshot.trackPoints.last?.mapCoordinate
+            if recovered.status == .active {
+                locationStatusText = currentCoordinate == nil ? "等待定位样本" : "定位恢复中"
+                locationSampler.start()
+            }
         } catch {
             errorMessage = "旧记录恢复失败，已使用预览路线"
         }
@@ -997,7 +1001,10 @@ struct WatchRouteMapView: View {
         case .paused:
             return "已暂停"
         case .unknown:
-            return sessionStatus == .active ? "定位中" : route.route.name
+            if sessionStatus == .active {
+                return currentCoordinate == nil ? "等待定位" : "定位中"
+            }
+            return route.route.name
         }
     }
 
