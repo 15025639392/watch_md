@@ -1,4 +1,4 @@
-import { RoutePayload, RouteAck, WatchStatus } from './RoutePayload'
+import { GtNavigationPayload, RoutePayload, RouteAck, WatchStatus } from './RoutePayload'
 import { HuaweiWatchDevice, RouteTransport } from './RouteTransport'
 
 export interface RouteFlowResult {
@@ -14,17 +14,18 @@ export class RouteFlowRunner {
     this.transport = transport
   }
 
-  async run(payload: RoutePayload): Promise<RouteFlowResult[]> {
+  async run(watchPayload: RoutePayload, gtPayload: GtNavigationPayload): Promise<RouteFlowResult[]> {
     const devices = await this.transport.discoverDevices()
     const results: RouteFlowResult[] = []
 
     for (const device of devices) {
-      const ack = await this.transport.sendRoutePayload(device, payload)
-      const status = await this.transport.readStatus(device, payload.routeId)
+      const ack = device.deviceLine === 'GT'
+        ? await this.transport.sendGtNavigationPayload(device, gtPayload)
+        : await this.transport.sendRoutePayload(device, watchPayload)
+      const status = await this.transport.readStatus(device, ack.routeId)
       results.push({ device, ack, status })
     }
 
     return results
   }
 }
-

@@ -8,11 +8,14 @@ export class WearEngineBridge {
       type: 'routeAck',
       protocolVersion: payload.protocolVersion,
       routeId: payload.routeId,
+      routeVersion: payload.routeVersion,
       deviceLine: 'WATCH',
       receivedAt: new Date().toISOString(),
       status: 'accepted',
-      storedPointCount: payload.points.length
+      storedPointCount: payload.points.length,
+      storedWaypointCount: payload.waypoints ? payload.waypoints.length : 0,
+      checksum: payload.checksum,
+      nextAction: 'awaitUserStartConfirmation'
     }
   }
 }
-

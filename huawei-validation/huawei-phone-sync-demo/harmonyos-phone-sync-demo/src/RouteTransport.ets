@@ -1,4 +1,4 @@
-import { RouteAck, RoutePayload, WatchStatus } from './RoutePayload'
+import { GtNavigationPayload, RouteAck, RoutePayload, WatchStatus } from './RoutePayload'
 
 export type DeviceLine = 'WATCH' | 'GT'
 
@@ -11,6 +11,6 @@ export interface HuaweiWatchDevice {
 export interface RouteTransport {
   discoverDevices(): Promise<HuaweiWatchDevice[]>
   sendRoutePayload(device: HuaweiWatchDevice, payload: RoutePayload): Promise<RouteAck>
+  sendGtNavigationPayload(device: HuaweiWatchDevice, payload: GtNavigationPayload): Promise<RouteAck>
   readStatus(device: HuaweiWatchDevice, routeId: string): Promise<WatchStatus>
 }
-

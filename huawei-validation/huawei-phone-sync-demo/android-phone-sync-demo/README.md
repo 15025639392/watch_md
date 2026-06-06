@@ -27,5 +27,4 @@
 2. 配置华为 Maven 仓和 AGC 应用。
 3. 下载 `agconnect-services.json`。
 4. 接入 Wear Engine SDK。
-5. 补齐 `WearEngineRouteTransport`。
-
+5. 补齐 `WearEngineRouteTransport` 中 WATCH 完整路线 payload 和 GT 轻量导航 payload 两条发送路径。

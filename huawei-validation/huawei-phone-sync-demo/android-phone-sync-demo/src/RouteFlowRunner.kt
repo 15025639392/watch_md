@@ -3,10 +3,14 @@ package com.example.hiking.huawei.sync
 class RouteFlowRunner(
     private val transport: RouteTransport
 ) {
-    fun run(payload: RoutePayload): List<RouteFlowResult> {
+    fun run(watchPayload: RoutePayload, gtPayload: GtNavigationPayload): List<RouteFlowResult> {
         return transport.discoverDevices().map { device ->
-            val ack = transport.sendRoutePayload(device, payload)
-            val status = transport.readStatus(device, payload.routeId)
+            val ack = if (device.deviceLine == DeviceLine.GT) {
+                transport.sendGtNavigationPayload(device, gtPayload)
+            } else {
+                transport.sendRoutePayload(device, watchPayload)
+            }
+            val status = transport.readStatus(device, ack.routeId)
 
             RouteFlowResult(
                 device = device,
@@ -22,4 +26,3 @@ data class RouteFlowResult(
     val ack: RouteAck,
     val status: WatchStatus
 )
-

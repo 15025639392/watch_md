@@ -1,4 +1,4 @@
-import { RouteAck, RoutePayload, WatchStatus } from './RoutePayload'
+import { GtNavigationPayload, RouteAck, RoutePayload, WatchStatus } from './RoutePayload'
 import { HuaweiWatchDevice, RouteTransport } from './RouteTransport'
 
 export class LocalSimulationTransport implements RouteTransport {
@@ -22,10 +22,30 @@ export class LocalSimulationTransport implements RouteTransport {
       type: 'routeAck',
       protocolVersion: payload.protocolVersion,
       routeId: payload.routeId,
+      routeVersion: payload.routeVersion,
       deviceLine: device.deviceLine,
       receivedAt: new Date().toISOString(),
       status: 'accepted',
-      storedPointCount: payload.points.length
+      storedPointCount: payload.points.length,
+      storedWaypointCount: payload.waypoints ? payload.waypoints.length : 0,
+      checksum: payload.checksum,
+      nextAction: 'awaitUserStartConfirmation'
+    }
+  }
+
+  async sendGtNavigationPayload(device: HuaweiWatchDevice, payload: GtNavigationPayload): Promise<RouteAck> {
+    return {
+      type: 'routeAck',
+      protocolVersion: payload.protocolVersion,
+      routeId: payload.routeId,
+      routeVersion: payload.routeVersion,
+      deviceLine: device.deviceLine,
+      receivedAt: new Date().toISOString(),
+      status: 'accepted',
+      storedWaypointCount: payload.waypoints.length,
+      storedPromptCount: payload.turnPrompts.length,
+      checksum: payload.checksum,
+      nextAction: 'renderStatusAndPrepareAlerts'
     }
   }
 
@@ -35,12 +55,13 @@ export class LocalSimulationTransport implements RouteTransport {
       protocolVersion: '0.1',
       deviceLine: device.deviceLine,
       recordingState: 'idle',
+      navigationStatus: device.deviceLine === 'WATCH' ? 'routeInstalled' : 'statusSyncReady',
       batteryPercent: device.deviceLine === 'WATCH' ? 82 : 91,
       isWorn: true,
       isCharging: false,
+      isConnectedToPhone: true,
       lastRouteId: routeId,
       updatedAt: new Date().toISOString()
     }
   }
 }
-

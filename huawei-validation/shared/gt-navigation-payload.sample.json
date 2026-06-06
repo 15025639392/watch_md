@@ -1,45 +1,20 @@
 {
-  "type": "routePayload",
+  "type": "gtNavigationPayload",
   "protocolVersion": "0.1",
-  "targetDeviceLine": "WATCH",
+  "targetDeviceLine": "GT",
   "routeId": "demo-mountain-loop",
   "routeVersion": 1,
   "routeName": "Demo Mountain Loop",
   "source": "huawei-phone-sync-demo",
   "sentAt": "2026-06-06T00:00:00Z",
+  "expiresAt": "2026-06-07T00:00:00Z",
   "distanceMeters": 4200,
   "ascentMeters": 360,
   "estimatedDurationSeconds": 5400,
   "startName": "North Trailhead",
   "endName": "North Trailhead",
-  "checksum": "demo-watch-route-v1",
-  "routeVariant": "simplifiedForWearable",
-  "points": [
-    {
-      "index": 0,
-      "lat": 30.12345,
-      "lon": 120.12345,
-      "ele": 80,
-      "distanceFromStartMeters": 0,
-      "role": "start"
-    },
-    {
-      "index": 1,
-      "lat": 30.1241,
-      "lon": 120.1242,
-      "ele": 132,
-      "distanceFromStartMeters": 2100,
-      "role": "waypoint"
-    },
-    {
-      "index": 2,
-      "lat": 30.1252,
-      "lon": 120.1253,
-      "ele": 210,
-      "distanceFromStartMeters": 4200,
-      "role": "finish"
-    }
-  ],
+  "checksum": "demo-gt-route-v1",
+  "offRouteThresholdMeters": 30,
   "waypoints": [
     {
       "waypointId": "start",
@@ -61,12 +36,27 @@
       "distanceFromStartMeters": 4200
     }
   ],
-  "alerts": [
+  "turnPrompts": [
     {
-      "kind": "offRoute",
-      "thresholdMeters": 30,
-      "returnThresholdMeters": 20,
-      "confirmPointCount": 3
+      "promptId": "turn-1",
+      "distanceFromStartMeters": 1900,
+      "direction": "right",
+      "text": "Turn right toward Ridge View",
+      "alertDistanceMeters": 80
     }
-  ]
+  ],
+  "optionalGeometry": {
+    "bounds": {
+      "minLat": 30.12345,
+      "minLon": 120.12345,
+      "maxLat": 30.1252,
+      "maxLon": 120.1253
+    },
+    "simplifiedPolyline": [
+      [30.12345, 120.12345],
+      [30.1241, 120.1242],
+      [30.1252, 120.1253]
+    ],
+    "samplingHintMeters": 20
+  }
 }

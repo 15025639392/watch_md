@@ -2,9 +2,12 @@
   "type": "routeAck",
   "protocolVersion": "0.1",
   "routeId": "demo-mountain-loop",
-  "deviceLine": "WATCH_OR_GT",
+  "routeVersion": 1,
+  "deviceLine": "WATCH",
   "receivedAt": "2026-06-06T00:00:10Z",
   "status": "accepted",
-  "storedPointCount": 3
+  "storedPointCount": 3,
+  "storedWaypointCount": 3,
+  "checksum": "demo-watch-route-v1",
+  "nextAction": "awaitUserStartConfirmation"
 }
-

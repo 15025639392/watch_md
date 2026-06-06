@@ -57,6 +57,7 @@
 - [华为 Wear Engine / Health Kit / AppGallery 申请与 SDK 接入说明](./docs/huawei-sdk-application-integration-v0.1.md)
 - [华为 WATCH 系列徒步 App MVP 规格](./docs/huawei-watch-series-mvp-spec-v0.1.md)
 - [华为 WATCH GT 系列徒步 App MVP 规格](./docs/huawei-gt-series-mvp-spec-v0.1.md)
+- [华为真实工程迁移与真机验证清单](./huawei-validation/real-project-setup-checklist.md)
 - [HarmonyOS / Huawei watch 开发环境自检脚本](./scripts/check-harmonyos-watch-env.sh)
 
 ## 建议阅读顺序

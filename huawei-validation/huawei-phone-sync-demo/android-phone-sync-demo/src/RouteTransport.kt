@@ -5,6 +5,8 @@ interface RouteTransport {
 
     fun sendRoutePayload(device: HuaweiWatchDevice, payload: RoutePayload): RouteAck
 
+    fun sendGtNavigationPayload(device: HuaweiWatchDevice, payload: GtNavigationPayload): RouteAck
+
     fun readStatus(device: HuaweiWatchDevice, routeId: String): WatchStatus
 }
 
@@ -18,4 +20,3 @@ enum class DeviceLine {
     WATCH,
     GT
 }
-

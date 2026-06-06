@@ -33,17 +33,19 @@
 | --- | --- |
 | 手机平台 | HarmonyOS / 华为手机 App、Android 手机 App |
 | 通信能力 | Wear Engine |
-| 首轮 payload | `../shared/route-payload.sample.json` |
+| WATCH 首轮 payload | `../shared/route-payload.sample.json` |
+| GT 首轮 payload | `../shared/gt-navigation-payload.sample.json` |
 | 首轮返回 | `routeAck`、`watchStatus` |
 
 ## 首轮功能
 
 1. 发现已配对的目标手表。
 2. 区分 WATCH 数字系列和 GT 系列。
-3. 下发路线 JSON 或 GPX 文件。
-4. 接收 ACK。
-5. 接收电量、佩戴、连接和记录状态。
-6. 记录华为手机、非华为 Android、iPhone 的差异。
+3. 向 WATCH 下发完整路线 JSON。
+4. 向 GT 下发轻量导航 JSON。
+5. 接收 ACK。
+6. 接收电量、佩戴、连接和记录状态。
+7. 记录华为手机、非华为 Android、iPhone 的差异。
 
 ## 本地流程模拟
 
@@ -53,7 +55,7 @@
 node huawei-validation/scripts/run-local-flow-demo.mjs
 ```
 
-该脚本模拟手机侧读取路线 payload，并分别向 WATCH Demo 和 GT Lite Demo 下发路线，生成 ACK 和状态回传。
+该脚本模拟手机侧分别读取 WATCH 路线 payload 和 GT 轻量导航 payload，并向 WATCH Demo 和 GT Lite Demo 下发，生成 ACK 和状态回传。
 
 ## 骨架文件
 

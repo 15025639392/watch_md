@@ -15,10 +15,11 @@
 ## 首轮功能
 
 1. 发现已配对 WATCH / GT。
-2. 下发 `shared/route-payload.sample.json` 对应的路线 payload。
-3. 接收 WATCH / GT ACK。
-4. 读取或接收手表状态。
-5. 记录 Huawei Health、HMS Core、AppGallery、账号地区和设备系统版本。
+2. 向 WATCH 下发 `shared/route-payload.sample.json` 对应的完整路线 payload。
+3. 向 GT 下发 `shared/gt-navigation-payload.sample.json` 对应的轻量导航 payload。
+4. 接收 WATCH / GT ACK。
+5. 读取或接收手表状态。
+6. 记录 Huawei Health、HMS Core、AppGallery、账号地区和设备系统版本。
 
 ## 骨架文件
 
@@ -35,4 +36,3 @@
 ## 注意
 
 当前目录不是完整 DevEco 工程。真实开发时，用 DevEco Studio 创建 HarmonyOS 手机应用工程，再迁入这些骨架文件。
-
