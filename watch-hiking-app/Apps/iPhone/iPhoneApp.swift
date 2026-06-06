@@ -1,3 +1,4 @@
+import CoreLocation
 import MapKit
 import SwiftUI
 import UniformTypeIdentifiers
@@ -5,14 +6,17 @@ import UniformTypeIdentifiers
 @main
 struct WatchHikingiPhoneApp: App {
     @StateObject private var routeListViewModel = RouteListViewModel()
-    @StateObject private var sessionSyncService = iPhoneSessionSyncService()
+    @StateObject private var sessionSyncService = iPhoneSessionSyncService.shared
+    @StateObject private var locationViewModel = iPhoneLocationViewModel()
 
     var body: some Scene {
         WindowGroup {
             RouteListView(viewModel: routeListViewModel)
                 .environmentObject(sessionSyncService)
+                .environmentObject(locationViewModel)
                 .task {
                     sessionSyncService.start()
+                    await routeListViewModel.autoSyncFirstRouteForDebugIfRequested()
                 }
                 .onOpenURL { url in
                     Task {
@@ -84,11 +88,33 @@ final class RouteListViewModel: ObservableObject {
         syncedRoutes.removeAll { $0.route.routeId == route.route.routeId }
         syncedRoutes.insert(route, at: 0)
     }
+
+    func autoSyncFirstRouteForDebugIfRequested() async {
+        guard ProcessInfo.processInfo.arguments.contains("--auto-sync-first-route") else { return }
+        do {
+            try await Task.sleep(nanoseconds: 2_000_000_000)
+            let summaries = try await client.fetchRouteSummaries(query: nil)
+            guard let first = summaries.first else { return }
+            let route = try await client.fetchRouteDetail(remoteRouteId: first.remoteRouteId)
+            try await routeStore.save(route)
+            importedRoutes = try await routeStore.listRoutes()
+            var didInstall = false
+            for try await state in iPhoneSessionSyncService.shared.sync(route) {
+                didInstall = state == .installed
+            }
+            if didInstall {
+                markSynced(route)
+            }
+        } catch {
+            errorMessage = "自动同步验证失败：\(error.localizedDescription)"
+        }
+    }
 }
 
 struct RouteListView: View {
     @StateObject var viewModel: RouteListViewModel
     @EnvironmentObject private var sessionSyncService: iPhoneSessionSyncService
+    @EnvironmentObject private var locationViewModel: iPhoneLocationViewModel
     @State private var searchText = ""
     @State private var isImportingGPX = false
     @State private var selectedFilter: RouteFilter = .remote
@@ -110,6 +136,8 @@ struct RouteListView: View {
                             )
                         }
                         .buttonStyle(.plain)
+
+                        iPhoneLocationStatusCard(viewModel: locationViewModel)
 
                         RouteFilterBar(selection: $selectedFilter)
 
@@ -239,6 +267,212 @@ enum RouteFilter: String, CaseIterable, Identifiable {
         case .remote: "远端路线"
         case .local: "本地"
         case .synced: "已同步"
+        }
+    }
+}
+
+struct iPhoneLocationSnapshot: Equatable {
+    var coordinate: CLLocationCoordinate2D
+    var horizontalAccuracyMeters: Double
+    var courseDegrees: Double
+    var timestamp: Date
+
+    static func == (lhs: iPhoneLocationSnapshot, rhs: iPhoneLocationSnapshot) -> Bool {
+        lhs.coordinate.latitude == rhs.coordinate.latitude &&
+            lhs.coordinate.longitude == rhs.coordinate.longitude &&
+            lhs.horizontalAccuracyMeters == rhs.horizontalAccuracyMeters &&
+            lhs.courseDegrees == rhs.courseDegrees &&
+            lhs.timestamp == rhs.timestamp
+    }
+}
+
+@MainActor
+final class iPhoneLocationViewModel: NSObject, ObservableObject, @preconcurrency CLLocationManagerDelegate {
+    @Published private(set) var snapshot: iPhoneLocationSnapshot?
+    @Published private(set) var statusText = "真实定位未启动"
+    @Published private(set) var isUpdating = false
+    @Published var keepsUpdatingInBackground = false {
+        didSet {
+            guard oldValue != keepsUpdatingInBackground else { return }
+            configureBackgroundLocation()
+            if keepsUpdatingInBackground, manager.authorizationStatus == .authorizedWhenInUse {
+                statusText = "需要始终允许定位"
+                manager.requestAlwaysAuthorization()
+            }
+        }
+    }
+
+    private let manager = CLLocationManager()
+
+    override init() {
+        super.init()
+        manager.delegate = self
+        manager.desiredAccuracy = kCLLocationAccuracyBest
+        manager.distanceFilter = 3
+        manager.activityType = .fitness
+        manager.headingFilter = 5
+        manager.pausesLocationUpdatesAutomatically = true
+    }
+
+    var coordinateText: String {
+        guard let snapshot else { return "--" }
+        return String(format: "%.5f, %.5f", snapshot.coordinate.latitude, snapshot.coordinate.longitude)
+    }
+
+    var accuracyText: String {
+        guard let snapshot else { return "--" }
+        return "\(Int(snapshot.horizontalAccuracyMeters.rounded()))m"
+    }
+
+    var headingText: String {
+        guard let snapshot else { return "--" }
+        return "\(Int(snapshot.courseDegrees.rounded()))° \(Formatters.compassDirection(snapshot.courseDegrees))"
+    }
+
+    var updatedText: String {
+        guard let snapshot else { return "等待位置" }
+        return snapshot.timestamp.formatted(date: .omitted, time: .standard)
+    }
+
+    func toggleUpdating() {
+        isUpdating ? stop() : start()
+    }
+
+    func start() {
+        startLiveLocation()
+    }
+
+    func stop() {
+        manager.stopUpdatingLocation()
+        manager.stopUpdatingHeading()
+        manager.allowsBackgroundLocationUpdates = false
+        manager.pausesLocationUpdatesAutomatically = true
+        isUpdating = false
+        statusText = "真实定位已停止"
+    }
+
+    private func startLiveLocation() {
+        switch manager.authorizationStatus {
+        case .notDetermined:
+            statusText = "等待定位授权"
+            if keepsUpdatingInBackground {
+                manager.requestAlwaysAuthorization()
+            } else {
+                manager.requestWhenInUseAuthorization()
+            }
+        case .authorizedWhenInUse, .authorizedAlways:
+            isUpdating = true
+            configureBackgroundLocation()
+            statusText = keepsUpdatingInBackground && manager.authorizationStatus != .authorizedAlways ? "前台定位中 · 等待始终允许" : "真实定位启动中"
+            if keepsUpdatingInBackground, manager.authorizationStatus == .authorizedWhenInUse {
+                manager.requestAlwaysAuthorization()
+            }
+            manager.startUpdatingLocation()
+            manager.startUpdatingHeading()
+        case .denied, .restricted:
+            isUpdating = false
+            statusText = "定位未授权"
+        @unknown default:
+            isUpdating = false
+            statusText = "定位状态未知"
+        }
+    }
+
+    private func configureBackgroundLocation() {
+        manager.allowsBackgroundLocationUpdates = keepsUpdatingInBackground && manager.authorizationStatus == .authorizedAlways
+        manager.pausesLocationUpdatesAutomatically = !keepsUpdatingInBackground
+        manager.showsBackgroundLocationIndicator = keepsUpdatingInBackground
+    }
+
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        startLiveLocation()
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let location = locations.last, location.horizontalAccuracy >= 0 else { return }
+        snapshot = iPhoneLocationSnapshot(
+            coordinate: location.coordinate,
+            horizontalAccuracyMeters: location.horizontalAccuracy,
+            courseDegrees: location.course >= 0 ? location.course : snapshot?.courseDegrees ?? 0,
+            timestamp: location.timestamp
+        )
+        statusText = keepsUpdatingInBackground && manager.authorizationStatus == .authorizedAlways ? "持续定位中" : "真实定位中"
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
+        guard var current = snapshot, newHeading.trueHeading >= 0 else { return }
+        current.courseDegrees = newHeading.trueHeading
+        current.timestamp = Date()
+        snapshot = current
+    }
+
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        statusText = "定位失败：\(error.localizedDescription)"
+    }
+}
+
+struct iPhoneLocationStatusCard: View {
+    @ObservedObject var viewModel: iPhoneLocationViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: "location.fill")
+                    .font(.headline)
+                    .foregroundStyle(viewModel.isUpdating ? AppTheme.green : AppTheme.blue)
+                    .frame(width: 34, height: 34)
+                    .background(AppTheme.secondaryFill)
+                    .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("iPhone 定位")
+                        .font(.subheadline.weight(.semibold))
+                    Text(viewModel.statusText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                Button {
+                    viewModel.toggleUpdating()
+                } label: {
+                    Image(systemName: viewModel.isUpdating ? "pause.fill" : "play.fill")
+                        .frame(width: 34, height: 34)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.white)
+                .background(viewModel.isUpdating ? AppTheme.orange : AppTheme.blue)
+                .clipShape(Circle())
+                .accessibilityLabel(viewModel.isUpdating ? "停止定位" : "开始定位")
+            }
+
+            Toggle(isOn: $viewModel.keepsUpdatingInBackground) {
+                Label("持续高精度定位", systemImage: "location.viewfinder")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .tint(AppTheme.green)
+
+            HStack(spacing: 8) {
+                WatchHubMetric(title: "坐标", value: viewModel.coordinateText, style: .neutral)
+                WatchHubMetric(title: "精度", value: viewModel.accuracyText, style: .ok)
+                WatchHubMetric(title: "朝向", value: viewModel.headingText, style: .neutral)
+            }
+
+            HStack {
+                Text(viewModel.updatedText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+        }
+        .padding(12)
+        .background(AppTheme.panel)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(AppTheme.line.opacity(0.75), lineWidth: 1)
         }
     }
 }
@@ -870,6 +1104,7 @@ struct IdentifiedRoute: Identifiable {
 struct RouteDetailView: View {
     let installedRoute: InstalledRoute
     let onSynced: (InstalledRoute) -> Void
+    @EnvironmentObject private var locationViewModel: iPhoneLocationViewModel
     @StateObject private var viewModel = RouteDetailViewModel()
     @State private var isChromeVisible = true
     @State private var selectedMapLayer: RouteMapLayer = .standard
@@ -877,7 +1112,11 @@ struct RouteDetailView: View {
 
     var body: some View {
         ZStack {
-            RoutePreviewMap(route: installedRoute, mapLayer: selectedMapLayer)
+            RoutePreviewMap(
+                route: installedRoute,
+                mapLayer: selectedMapLayer,
+                locationSnapshot: locationViewModel.snapshot
+            )
                 .ignoresSafeArea()
                 .accessibilityLabel("路线地图预览")
                 .simultaneousGesture(
@@ -1053,15 +1292,17 @@ struct ReadinessChecklist: View {
 struct RoutePreviewMap: View {
     let route: InstalledRoute
     let mapLayer: RouteMapLayer
+    let locationSnapshot: iPhoneLocationSnapshot?
 
     var body: some View {
-        RoutePatternMap(route: route, mapType: mapLayer.mapType)
+        RoutePatternMap(route: route, mapType: mapLayer.mapType, locationSnapshot: locationSnapshot)
     }
 }
 
 private struct RoutePatternMap: UIViewRepresentable {
     let route: InstalledRoute
     let mapType: MKMapType
+    let locationSnapshot: iPhoneLocationSnapshot?
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -1077,31 +1318,40 @@ private struct RoutePatternMap: UIViewRepresentable {
     }
 
     func updateUIView(_ mapView: MKMapView, context: Context) {
-        context.coordinator.routeOverlay = nil
+        let routeKey = "\(route.route.routeId)-\(route.route.version)-\(mapType.rawValue)"
         mapView.mapType = mapType
-        mapView.removeOverlays(mapView.overlays)
-        mapView.removeAnnotations(mapView.annotations)
 
-	        let coordinates = route.original.points.map(\.locationCoordinate)
-	        if coordinates.count >= 2 {
-	            let polyline = MKPolyline(coordinates: coordinates, count: coordinates.count)
-	            context.coordinator.routeOverlay = polyline
-	            mapView.addOverlay(polyline)
-	            mapView.setVisibleMapRect(
-	                polyline.boundingMapRect,
-	                edgePadding: UIEdgeInsets(top: 96, left: 34, bottom: 260, right: 34),
-	                animated: false
-	            )
-	        } else {
-	            mapView.setRegion(route.mapRegion, animated: false)
-	        }
+        if context.coordinator.routeKey != routeKey {
+            context.coordinator.routeKey = routeKey
+            context.coordinator.routeOverlay = nil
+            mapView.removeOverlays(mapView.overlays)
+            mapView.removeAnnotations(mapView.annotations.filter { !($0 is UserLocationAnnotation) })
 
-	        mapView.addAnnotation(RouteEndpointAnnotation(title: "起点", coordinate: route.route.startPoint.locationCoordinate))
-	        mapView.addAnnotation(RouteEndpointAnnotation(title: "终点", coordinate: route.route.endPoint.locationCoordinate))
-	    }
+            let coordinates = route.original.points.map(\.locationCoordinate)
+            if coordinates.count >= 2 {
+                let polyline = MKPolyline(coordinates: coordinates, count: coordinates.count)
+                context.coordinator.routeOverlay = polyline
+                mapView.addOverlay(polyline)
+                mapView.setVisibleMapRect(
+                    polyline.boundingMapRect,
+                    edgePadding: UIEdgeInsets(top: 96, left: 34, bottom: 260, right: 34),
+                    animated: false
+                )
+            } else {
+                mapView.setRegion(route.mapRegion, animated: false)
+            }
+
+            mapView.addAnnotation(RouteEndpointAnnotation(title: "起点", coordinate: route.route.startPoint.locationCoordinate))
+            mapView.addAnnotation(RouteEndpointAnnotation(title: "终点", coordinate: route.route.endPoint.locationCoordinate))
+        }
+
+        context.coordinator.updateUserLocation(locationSnapshot, in: mapView)
+    }
 
     final class Coordinator: NSObject, MKMapViewDelegate {
         weak var routeOverlay: MKPolyline?
+        var routeKey: String?
+        private var userLocationAnnotation: UserLocationAnnotation?
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             if let polyline = overlay as? MKPolyline, polyline === routeOverlay {
@@ -1111,6 +1361,16 @@ private struct RoutePatternMap: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            if let userLocation = annotation as? UserLocationAnnotation {
+                let identifier = "UserLocationAnnotation"
+                let view = (mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? UserLocationAnnotationView)
+                    ?? UserLocationAnnotationView(annotation: annotation, reuseIdentifier: identifier)
+                view.annotation = annotation
+                view.update(courseDegrees: userLocation.courseDegrees)
+                view.canShowCallout = true
+                return view
+            }
+
             guard let endpoint = annotation as? RouteEndpointAnnotation else { return nil }
             let identifier = "RouteEndpointAnnotation"
             let view = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
@@ -1120,6 +1380,31 @@ private struct RoutePatternMap: UIViewRepresentable {
                 marker.glyphText = endpoint.title == "起点" ? "起" : "终"
             }
             return view
+        }
+
+        func updateUserLocation(_ snapshot: iPhoneLocationSnapshot?, in mapView: MKMapView) {
+            guard let snapshot else {
+                if let userLocationAnnotation {
+                    mapView.removeAnnotation(userLocationAnnotation)
+                    self.userLocationAnnotation = nil
+                }
+                return
+            }
+
+            if let userLocationAnnotation {
+                userLocationAnnotation.coordinate = snapshot.coordinate
+                userLocationAnnotation.courseDegrees = snapshot.courseDegrees
+                if let view = mapView.view(for: userLocationAnnotation) as? UserLocationAnnotationView {
+                    view.update(courseDegrees: snapshot.courseDegrees)
+                }
+            } else {
+                let annotation = UserLocationAnnotation(
+                    coordinate: snapshot.coordinate,
+                    courseDegrees: snapshot.courseDegrees
+                )
+                userLocationAnnotation = annotation
+                mapView.addAnnotation(annotation)
+            }
         }
     }
 }
@@ -1203,6 +1488,101 @@ private final class RouteEndpointAnnotation: NSObject, MKAnnotation {
     init(title: String, coordinate: CLLocationCoordinate2D) {
         self.title = title
         self.coordinate = coordinate
+    }
+}
+
+private final class UserLocationAnnotation: NSObject, MKAnnotation {
+    @objc dynamic var coordinate: CLLocationCoordinate2D
+    var courseDegrees: Double
+    let title: String? = "当前位置"
+
+    init(coordinate: CLLocationCoordinate2D, courseDegrees: Double) {
+        self.coordinate = coordinate
+        self.courseDegrees = courseDegrees
+    }
+}
+
+private final class UserLocationAnnotationView: MKAnnotationView {
+    private let accuracyView = UIView()
+    private let headingView = UserHeadingView()
+    private let dotView = UIView()
+
+    override init(annotation: MKAnnotation?, reuseIdentifier: String?) {
+        super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
+        frame = CGRect(x: 0, y: 0, width: 58, height: 58)
+        centerOffset = .zero
+        backgroundColor = .clear
+        isOpaque = false
+        collisionMode = .circle
+        displayPriority = .required
+
+        accuracyView.frame = bounds
+        accuracyView.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.16)
+        accuracyView.layer.cornerRadius = bounds.width / 2
+        accuracyView.layer.borderColor = UIColor.systemBlue.withAlphaComponent(0.22).cgColor
+        accuracyView.layer.borderWidth = 1
+        accuracyView.isUserInteractionEnabled = false
+        addSubview(accuracyView)
+
+        headingView.frame = bounds
+        headingView.backgroundColor = .clear
+        headingView.isOpaque = false
+        headingView.isUserInteractionEnabled = false
+        addSubview(headingView)
+
+        dotView.frame = CGRect(x: 20, y: 20, width: 18, height: 18)
+        dotView.backgroundColor = .systemBlue
+        dotView.layer.cornerRadius = 9
+        dotView.layer.borderColor = UIColor.white.cgColor
+        dotView.layer.borderWidth = 3
+        dotView.layer.shadowColor = UIColor.black.cgColor
+        dotView.layer.shadowOpacity = 0.20
+        dotView.layer.shadowRadius = 4
+        dotView.layer.shadowOffset = CGSize(width: 0, height: 1)
+        dotView.isUserInteractionEnabled = false
+        addSubview(dotView)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func update(courseDegrees: Double) {
+        headingView.transform = CGAffineTransform(rotationAngle: courseDegrees * .pi / 180)
+    }
+}
+
+private final class UserHeadingView: UIView {
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = .clear
+        isOpaque = false
+        contentMode = .redraw
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func draw(_ rect: CGRect) {
+        guard let context = UIGraphicsGetCurrentContext() else { return }
+        context.saveGState()
+
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let path = UIBezierPath()
+        path.move(to: CGPoint(x: center.x, y: 6))
+        path.addLine(to: CGPoint(x: center.x - 8, y: center.y - 4))
+        path.addQuadCurve(to: CGPoint(x: center.x + 8, y: center.y - 4), controlPoint: CGPoint(x: center.x, y: center.y - 9))
+        path.close()
+
+        UIColor.systemBlue.withAlphaComponent(0.26).setFill()
+        path.fill()
+
+        UIColor.white.withAlphaComponent(0.85).setStroke()
+        path.lineWidth = 1
+        path.stroke()
+
+        context.restoreGState()
     }
 }
 
@@ -1368,7 +1748,7 @@ final class RouteDetailViewModel: ObservableObject {
     @Published private(set) var isSyncing = false
     @Published private(set) var errorMessage: String?
 
-    private let syncService = WatchRouteSyncService(transport: SimulatorWatchRouteSyncTransport())
+    private let syncService = WatchRouteSyncService(transport: iPhoneSessionSyncService.shared)
 
     var statusText: String {
         switch state {
@@ -1427,7 +1807,7 @@ final class RouteDetailViewModel: ObservableObject {
         errorMessage = nil
         var didInstall = false
         do {
-            for try await newState in await syncService.sync(route) {
+            for try await newState in syncService.sync(route) {
                 state = newState
                 didInstall = newState == .installed
             }
@@ -1724,18 +2104,26 @@ private enum Formatters {
         }
         return "\(Int(meters.rounded())) m"
     }
+
+    static func compassDirection(_ degrees: Double) -> String {
+        let directions = ["北", "东北", "东", "东南", "南", "西南", "西", "西北"]
+        let index = Int(((degrees + 22.5).truncatingRemainder(dividingBy: 360)) / 45)
+        return directions[max(0, min(index, directions.count - 1))]
+    }
 }
 
 private extension UTType {
     static let gpx = UTType(filenameExtension: "gpx") ?? .xml
 }
 
+@MainActor
 protocol WatchRouteSyncTransport: Sendable {
+    var readinessText: String { get }
     func sync(_ route: InstalledRoute) -> AsyncThrowingStream<RouteSyncState, Error>
 }
 
-actor WatchRouteSyncService {
-    let readinessText = "当前为模拟器同步模式：iPhone 侧会跑完整 manifest/payload/ACK 流程，但不会真实传到 Watch 模拟器。"
+@MainActor
+final class WatchRouteSyncService: @unchecked Sendable {
     private let transport: any WatchRouteSyncTransport
 
     init(transport: any WatchRouteSyncTransport) {
@@ -1745,9 +2133,14 @@ actor WatchRouteSyncService {
     func sync(_ route: InstalledRoute) -> AsyncThrowingStream<RouteSyncState, Error> {
         transport.sync(route)
     }
+
+    var readinessText: String {
+        transport.readinessText
+    }
 }
 
 final class SimulatorWatchRouteSyncTransport: WatchRouteSyncTransport, @unchecked Sendable {
+    let readinessText = "当前为模拟器同步模式：iPhone 侧会跑完整 manifest/payload/ACK 流程，但不会真实传到 Watch 模拟器。"
     private let coordinator = RouteSyncCoordinator()
     private let installer: WatchRouteInstaller
 

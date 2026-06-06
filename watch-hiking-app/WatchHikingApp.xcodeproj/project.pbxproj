@@ -19,6 +19,7 @@
 		100000000000000000000009 /* Sources/HikingCore/RouteSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000A /* Sources/HikingCore/RouteSync.swift */; };
 		100000000000000000000013 /* Sources/HikingCore/HikingSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000D /* Sources/HikingCore/HikingSession.swift */; };
 		100000000000000000000016 /* Sources/HikingCore/SessionSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000011 /* Sources/HikingCore/SessionSync.swift */; };
+		100000000000000000000019 /* WatchHikingWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000C /* WatchHikingWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		10000000000000000000000A /* Apps/Watch/WatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000002 /* Apps/Watch/WatchApp.swift */; };
 		100000000000000000000018 /* Apps/Watch/WatchSessionUploadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000012 /* Apps/Watch/WatchSessionUploadService.swift */; };
 		10000000000000000000000B /* Sources/HikingCore/Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000003 /* Sources/HikingCore/Models.swift */; };
@@ -32,6 +33,30 @@
 		100000000000000000000014 /* Sources/HikingCore/HikingSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000D /* Sources/HikingCore/HikingSession.swift */; };
 		100000000000000000000017 /* Sources/HikingCore/SessionSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000011 /* Sources/HikingCore/SessionSync.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		110000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 800000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 500000000000000000000002;
+			remoteInfo = WatchHikingWatch;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		120000000000000000000001 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				100000000000000000000019 /* WatchHikingWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		200000000000000000000001 /* Apps/iPhone/iPhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Apps/iPhone/iPhoneApp.swift; sourceTree = SOURCE_ROOT; };
@@ -145,10 +170,12 @@
 			buildPhases = (
 				600000000000000000000001 /* Sources */,
 				300000000000000000000001 /* Frameworks */,
+				120000000000000000000001 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				130000000000000000000001 /* PBXTargetDependency */,
 			);
 			name = WatchHikingiPhone;
 			productName = WatchHikingiPhone;
@@ -249,6 +276,14 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		130000000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 500000000000000000000002 /* WatchHikingWatch */;
+			targetProxy = 110000000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		900000000000000000000001 /* Debug */ = {
@@ -418,8 +453,8 @@
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "用于在 Apple Watch 徒步时保存一次户外徒步运动记录。";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "用于在 Apple Watch 徒步时记录实际轨迹点。";
 				INFOPLIST_KEY_WKApplication = YES;
-				INFOPLIST_KEY_WKWatchOnly = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.watchmd.hiking.watch;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.watchmd.hiking.iphone;
+				PRODUCT_BUNDLE_IDENTIFIER = com.watchmd.hiking.iphone.watch;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = NO;
@@ -443,8 +478,8 @@
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "用于在 Apple Watch 徒步时保存一次户外徒步运动记录。";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "用于在 Apple Watch 徒步时记录实际轨迹点。";
 				INFOPLIST_KEY_WKApplication = YES;
-				INFOPLIST_KEY_WKWatchOnly = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.watchmd.hiking.watch;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.watchmd.hiking.iphone;
+				PRODUCT_BUNDLE_IDENTIFIER = com.watchmd.hiking.iphone.watch;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = NO;

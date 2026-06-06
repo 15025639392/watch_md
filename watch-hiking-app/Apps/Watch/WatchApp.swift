@@ -50,6 +50,7 @@ final class WatchRouteCardViewModel: ObservableObject {
         routeStore = try! RouteStore(directoryURL: documentDirectory.appendingPathComponent("WatchInstalledRoutes", isDirectory: true))
         uploadService = WatchSessionUploadService(
             sessionStore: store,
+            routeStore: routeStore,
             pendingDirectoryURL: documentDirectory.appendingPathComponent("WatchPendingUploads", isDirectory: true)
         )
         locationSampler.onLocation = { [weak self] location in
@@ -67,6 +68,9 @@ final class WatchRouteCardViewModel: ObservableObject {
         }
         uploadService.onStatusChange = { [weak self] text in
             self?.uploadStatusText = text
+        }
+        uploadService.onRouteInstalled = { [weak self] route in
+            self?.install(route: route, source: "iPhone 同步路线")
         }
     }
 

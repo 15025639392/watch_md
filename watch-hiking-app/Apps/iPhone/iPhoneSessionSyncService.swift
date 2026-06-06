@@ -4,6 +4,8 @@ import WatchConnectivity
 
 @MainActor
 final class iPhoneSessionSyncService: NSObject, ObservableObject {
+    static let shared = iPhoneSessionSyncService()
+
     @Published private(set) var receivedSessions: [ReceivedSessionRecord] = []
     @Published private(set) var lastSyncMessage = "等待 Watch 回传"
     @Published private(set) var isWatchConnectivityAvailable = WCSession.isSupported()
@@ -14,6 +16,9 @@ final class iPhoneSessionSyncService: NSObject, ObservableObject {
     private let receiver = iPhoneSessionSyncReceiver()
     private let store: iPhoneReceivedSessionStore
     private let session: WCSession?
+    private var routeSyncContinuation: AsyncThrowingStream<RouteSyncState, Error>.Continuation?
+    private var routeSyncCoordinator: RouteSyncCoordinator?
+    private var pendingRoute: InstalledRoute?
 
     override init() {
         let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -106,6 +111,10 @@ final class iPhoneSessionSyncService: NSObject, ObservableObject {
             let sessionId: String
 
             switch header.kind {
+            case .syncAck:
+                let envelope = try RouteSyncCodec.decoder.decode(SyncEnvelope<SyncAck>.self, from: data)
+                await handleRouteSyncAck(envelope.payload)
+                return
             case .sessionStatus:
                 let envelope = try RouteSyncCodec.decoder.decode(SyncEnvelope<SessionStatusPayload>.self, from: data)
                 ack = try await receiver.receiveStatus(envelope)
@@ -122,7 +131,7 @@ final class iPhoneSessionSyncService: NSObject, ObservableObject {
                 let envelope = try RouteSyncCodec.decoder.decode(SyncEnvelope<SessionSummary>.self, from: data)
                 ack = try await receiver.receiveSummary(envelope)
                 sessionId = envelope.payload.sessionId
-            case .routeManifest, .routePayload, .syncAck:
+            case .routeManifest, .routePayload:
                 lastSyncMessage = "收到非会话回传数据：\(header.kind.rawValue)"
                 return
             }
@@ -141,12 +150,29 @@ final class iPhoneSessionSyncService: NSObject, ObservableObject {
     private func sendAck(_ envelope: SyncEnvelope<SyncAck>) {
         do {
             let data = try RouteSyncCodec.encoder.encode(envelope)
-            session?.transferUserInfo([
-                WatchSessionSyncTransferKeys.envelopeData: data,
-                WatchSessionSyncTransferKeys.kind: envelope.kind.rawValue
-            ])
+            sendEnvelopeData(data, kind: envelope.kind.rawValue)
         } catch {
             lastSyncMessage = "ACK 编码失败：\(error.localizedDescription)"
+        }
+    }
+
+    private func sendEnvelopeData(_ data: Data, kind: String) {
+        guard let session else { return }
+        if session.isReachable {
+            session.sendMessageData(data, replyHandler: nil) { [weak self] error in
+                Task { @MainActor in
+                    self?.lastSyncMessage = "实时发送失败，改用可靠队列：\(error.localizedDescription)"
+                    self?.session?.transferUserInfo([
+                        WatchSessionSyncTransferKeys.envelopeData: data,
+                        WatchSessionSyncTransferKeys.kind: kind
+                    ])
+                }
+            }
+        } else {
+            session.transferUserInfo([
+                WatchSessionSyncTransferKeys.envelopeData: data,
+                WatchSessionSyncTransferKeys.kind: kind
+            ])
         }
     }
 
@@ -160,6 +186,107 @@ final class iPhoneSessionSyncService: NSObject, ObservableObject {
             return "重复数据已去重"
         default:
             return "已接收：\(ack.action.rawValue)"
+        }
+    }
+}
+
+extension iPhoneSessionSyncService: WatchRouteSyncTransport {
+    var readinessText: String {
+        guard let session else { return "当前设备不支持 WatchConnectivity" }
+        guard session.activationState == .activated else { return "正在连接 Watch" }
+        guard session.isPaired else { return "未配对 Apple Watch" }
+        guard session.isWatchAppInstalled else { return "Watch App 未安装" }
+        return session.isReachable ? "Watch 已连接，可发送路线" : "Watch 未实时连接，将通过可靠队列同步"
+    }
+
+    func sync(_ route: InstalledRoute) -> AsyncThrowingStream<RouteSyncState, Error> {
+        AsyncThrowingStream { continuation in
+            Task { @MainActor in
+                guard session != nil else {
+                    continuation.finish(throwing: RouteSyncTransportError.watchConnectivityUnavailable)
+                    return
+                }
+                pendingRoute = route
+                routeSyncContinuation = continuation
+                routeSyncCoordinator = RouteSyncCoordinator()
+                do {
+                    let manifest = try RouteSyncCodec.makeManifestEnvelope(for: route)
+                    try transfer(manifest)
+                    await routeSyncCoordinator?.markManifestSent()
+                    continuation.yield(await routeSyncCoordinator?.state ?? .manifestSent)
+                    lastSyncMessage = "路线清单已加入 Watch 同步队列"
+                } catch {
+                    routeSyncContinuation = nil
+                    routeSyncCoordinator = nil
+                    pendingRoute = nil
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+    }
+
+    private func handleRouteSyncAck(_ ack: SyncAck) async {
+        guard let continuation = routeSyncContinuation,
+              let coordinator = routeSyncCoordinator else {
+            lastSyncMessage = "收到路线 ACK：\(ack.action.rawValue)"
+            return
+        }
+
+        do {
+            switch ack.action {
+            case .readyForPayload, .routeAlreadyInstalled, .routeManifestRejected:
+                try await coordinator.handleManifestAck(ack)
+                continuation.yield(await coordinator.state)
+                if await coordinator.state == .readyForPayload {
+                    guard let pendingRoute else { throw RouteSyncTransportError.missingPendingRoute }
+                    let payload = try RouteSyncCodec.makePayloadEnvelope(for: pendingRoute)
+                    try transfer(payload)
+                    await coordinator.markPayloadTransferred()
+                    continuation.yield(await coordinator.state)
+                    lastSyncMessage = "路线数据已加入 Watch 同步队列"
+                } else {
+                    finishRouteSync()
+                }
+            case .routeInstalled, .routePayloadRejected:
+                try await coordinator.handlePayloadAck(ack)
+                continuation.yield(await coordinator.state)
+                lastSyncMessage = "路线已同步到 Watch"
+                finishRouteSync()
+            default:
+                break
+            }
+        } catch {
+            continuation.finish(throwing: error)
+            routeSyncContinuation = nil
+            routeSyncCoordinator = nil
+            pendingRoute = nil
+            lastSyncMessage = "路线同步失败：\(error.localizedDescription)"
+        }
+    }
+
+    private func finishRouteSync() {
+        routeSyncContinuation?.finish()
+        routeSyncContinuation = nil
+        routeSyncCoordinator = nil
+        pendingRoute = nil
+    }
+
+    private func transfer<Payload>(_ envelope: SyncEnvelope<Payload>) throws where Payload: Codable & Equatable & Sendable {
+        let data = try RouteSyncCodec.encoder.encode(envelope)
+        sendEnvelopeData(data, kind: envelope.kind.rawValue)
+    }
+}
+
+private enum RouteSyncTransportError: LocalizedError {
+    case watchConnectivityUnavailable
+    case missingPendingRoute
+
+    var errorDescription: String? {
+        switch self {
+        case .watchConnectivityUnavailable:
+            return "WatchConnectivity 不可用"
+        case .missingPendingRoute:
+            return "缺少待发送路线"
         }
     }
 }
@@ -203,6 +330,20 @@ extension iPhoneSessionSyncService: WCSessionDelegate {
         }
         Task { @MainActor in
             await handleEnvelopeData(data)
+        }
+    }
+
+    nonisolated func session(_ session: WCSession, didReceiveMessageData messageData: Data) {
+        Task { @MainActor in
+            await handleEnvelopeData(messageData)
+        }
+    }
+
+    nonisolated func session(_ session: WCSession, didFinish userInfoTransfer: WCSessionUserInfoTransfer, error: Error?) {
+        Task { @MainActor in
+            if let error {
+                lastSyncMessage = "可靠队列发送失败：\(error.localizedDescription)"
+            }
         }
     }
 }

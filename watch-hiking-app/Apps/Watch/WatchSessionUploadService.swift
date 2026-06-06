@@ -4,15 +4,20 @@ import WatchConnectivity
 @MainActor
 final class WatchSessionUploadService: NSObject {
     var onStatusChange: ((String) -> Void)?
+    var onRouteInstalled: ((InstalledRoute) -> Void)?
 
     private let engine: WatchSessionUploadEngine
+    private let routeInstaller: WatchRouteInstaller
+    private let routeStore: RouteStore
     private let session: WCSession?
 
-    init(sessionStore: HikingSessionStore, pendingDirectoryURL: URL) {
+    init(sessionStore: HikingSessionStore, routeStore: RouteStore, pendingDirectoryURL: URL) {
         engine = WatchSessionUploadEngine(
             sessionStore: sessionStore,
             pendingStore: try! WatchPendingUploadStore(directoryURL: pendingDirectoryURL)
         )
+        self.routeStore = routeStore
+        routeInstaller = WatchRouteInstaller(routeStore: routeStore)
         session = WCSession.isSupported() ? .default : nil
         super.init()
         session?.delegate = self
@@ -54,6 +59,30 @@ final class WatchSessionUploadService: NSObject {
         }
     }
 
+    private func handleRouteData(_ data: Data) async {
+        do {
+            let header = try RouteSyncCodec.decoder.decode(SyncEnvelopeHeader.self, from: data)
+            let ack: SyncEnvelope<SyncAck>
+            switch header.kind {
+            case .routeManifest:
+                let envelope = try RouteSyncCodec.decoder.decode(SyncEnvelope<RouteManifest>.self, from: data)
+                ack = try await routeInstaller.receiveManifest(envelope)
+                onStatusChange?("路线清单已接收")
+            case .routePayload:
+                let envelope = try RouteSyncCodec.decoder.decode(SyncEnvelope<RoutePayload>.self, from: data)
+                ack = try await routeInstaller.receivePayload(envelope)
+                let installed = try await routeStore.load(routeId: envelope.payload.route.routeId)
+                onRouteInstalled?(installed)
+                onStatusChange?("路线已安装")
+            default:
+                return
+            }
+            transfer(try RouteSyncCodec.encoder.encode(ack))
+        } catch {
+            onStatusChange?("路线接收失败：\(error.localizedDescription)")
+        }
+    }
+
     private func apply(_ result: WatchUploadEngineResult) {
         result.envelopeData.forEach(transfer)
         if let statusText = result.statusText {
@@ -62,11 +91,41 @@ final class WatchSessionUploadService: NSObject {
     }
 
     private func transfer(_ data: Data) {
-        session?.transferUserInfo([
-            WatchSessionTransferKeys.envelopeData: data,
-            WatchSessionTransferKeys.kind: "syncEnvelope"
-        ])
+        guard let session else { return }
+        if session.isReachable {
+            session.sendMessageData(data, replyHandler: nil) { [weak self] error in
+                Task { @MainActor in
+                    self?.onStatusChange?("实时发送失败，改用可靠队列：\(error.localizedDescription)")
+                    self?.session?.transferUserInfo([
+                        WatchSessionTransferKeys.envelopeData: data,
+                        WatchSessionTransferKeys.kind: "syncEnvelope"
+                    ])
+                }
+            }
+        } else {
+            session.transferUserInfo([
+                WatchSessionTransferKeys.envelopeData: data,
+                WatchSessionTransferKeys.kind: "syncEnvelope"
+            ])
+        }
     }
+
+    private func receiveEnvelopeData(_ data: Data) async {
+        do {
+            let header = try RouteSyncCodec.decoder.decode(SyncEnvelopeHeader.self, from: data)
+            switch header.kind {
+            case .syncAck:
+                await handleAckData(data)
+            case .routeManifest, .routePayload:
+                await handleRouteData(data)
+            default:
+                onStatusChange?("收到暂不处理的数据：\(header.kind.rawValue)")
+            }
+        } catch {
+            onStatusChange?("同步数据解析失败：\(error.localizedDescription)")
+        }
+    }
+
 }
 
 private actor WatchSessionUploadEngine {
@@ -252,12 +311,26 @@ extension WatchSessionUploadService: WCSessionDelegate {
     nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
         guard let data = userInfo[WatchSessionTransferKeys.envelopeData] as? Data else {
             Task { @MainActor in
-                onStatusChange?("收到 ACK 但缺少 envelope")
+                onStatusChange?("收到数据但缺少 envelope")
             }
             return
         }
         Task { @MainActor in
-            await handleAckData(data)
+            await receiveEnvelopeData(data)
+        }
+    }
+
+    nonisolated func session(_ session: WCSession, didReceiveMessageData messageData: Data) {
+        Task { @MainActor in
+            await receiveEnvelopeData(messageData)
+        }
+    }
+
+    nonisolated func session(_ session: WCSession, didFinish userInfoTransfer: WCSessionUserInfoTransfer, error: Error?) {
+        Task { @MainActor in
+            if let error {
+                onStatusChange?("可靠队列发送失败：\(error.localizedDescription)")
+            }
         }
     }
 }

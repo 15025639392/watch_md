@@ -43,8 +43,14 @@
 	</array>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>用于在徒步或定位验证期间，即使 App 退到后台也持续更新位置。</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>用于展示当前位置、导入路线预览和后续徒步记录。</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>UIRequiresFullScreen</key>
 	<true/>
 	<key>UILaunchScreen</key>
