@@ -298,13 +298,16 @@ public actor iPhoneSessionSyncReceiver {
         let events = eventsBySession[sessionId, default: [:]]
             .values
             .sorted { $0.timestamp < $1.timestamp }
+        let syncStatus: SessionSyncStatus = isComplete(sessionId: sessionId) ? .synced : .syncing
+        var summary = summaries[sessionId]
+        summary?.syncStatus = syncStatus
         return ReceivedSessionRecord(
             sessionId: sessionId,
             status: statuses[sessionId],
-            summary: summaries[sessionId],
+            summary: summary,
             trackPoints: points,
             events: events,
-            syncStatus: isComplete(sessionId: sessionId) ? .synced : .syncing
+            syncStatus: syncStatus
         )
     }
 

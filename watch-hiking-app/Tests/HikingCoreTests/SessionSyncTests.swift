@@ -29,6 +29,7 @@ struct SessionSyncTests {
         #expect(record?.trackPoints.count == 5)
         #expect(record?.events.count == stored.events.count)
         #expect(record?.syncStatus == .synced)
+        #expect(record?.summary?.syncStatus == .synced)
     }
 
     @Test("Duplicate track chunk is idempotent")

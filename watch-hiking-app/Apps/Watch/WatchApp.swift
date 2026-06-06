@@ -118,6 +118,7 @@ final class WatchRouteCardViewModel: ObservableObject {
             if let installed = try? await routeStore.listRoutes().first {
                 install(route: installed, source: "本地安装路线")
             }
+            await autoUploadDebugSessionIfRequested()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -154,6 +155,48 @@ final class WatchRouteCardViewModel: ObservableObject {
             remoteRouteId: "watch-free-recording",
             sourceProvider: freeRecordingSourceProvider
         )
+    }
+
+    private func autoUploadDebugSessionIfRequested() async {
+        guard ProcessInfo.processInfo.arguments.contains("--auto-upload-debug-session"),
+              session == nil,
+              summary == nil,
+              let route else {
+            return
+        }
+
+        do {
+            let start = Date()
+            _ = try await recorder.start(route: route, watchDeviceId: "watch-simulator-debug-upload", now: start)
+            for index in 0..<5 {
+                _ = try await recorder.appendLocation(
+                    latitude: 37.8044 + Double(index) * 0.001,
+                    longitude: -122.4776 + Double(index) * 0.0004,
+                    elevationMeters: 12 + Double(index) * 4,
+                    horizontalAccuracyMeters: 8,
+                    speedMetersPerSecond: 1.2,
+                    courseDegrees: 35,
+                    heartRateBpm: 110 + Double(index),
+                    timestamp: start.addingTimeInterval(Double(index + 1) * 10)
+                )
+            }
+            _ = try await recorder.appendEvent(
+                type: .offRouteStarted,
+                coordinate: GeoCoordinate(latitude: 37.8060, longitude: -122.4768),
+                severity: .warning,
+                timestamp: start.addingTimeInterval(35)
+            )
+            summary = try await recorder.finish(now: start.addingTimeInterval(70))
+            let snapshot = try await recorder.storedSnapshot()
+            trackPoints = snapshot.trackPoints
+            trackPointCount = snapshot.trackPoints.count
+            currentCoordinate = snapshot.trackPoints.last?.mapCoordinate
+            await uploadService.upload(snapshot)
+            session = nil
+            routeMatch = .empty
+        } catch {
+            errorMessage = "自动回传验证失败：\(error.localizedDescription)"
+        }
     }
 
     func start() async {

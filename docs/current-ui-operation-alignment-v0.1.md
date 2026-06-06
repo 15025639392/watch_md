@@ -92,6 +92,12 @@ Watch 中枢用于查看 Watch 会话回传，不是路线管理页。
 3. 有会话时按“待处理”和“已完成”分组。
 4. 点击会话进入“回传详情”。
 
+同步语义：
+
+1. Watch -> iPhone 会话回传已用 iPhone 模拟器 + 配套 Watch 模拟器验证 status / track chunk / event chunk / summary / ACK 流程。
+2. iPhone 收齐摘要、最终轨迹和最终事件后会把会话保存到 `ReceivedSessions`，外层记录和摘要内的 `syncStatus` 都应显示为 `synced`。
+3. 断连、后台、锁屏、重连和大体量 chunk 的真实设备表现仍需 iPhone + Apple Watch 真机验证。
+
 回传详情显示：
 
 1. 同步状态。
