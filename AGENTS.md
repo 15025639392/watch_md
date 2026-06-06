@@ -39,6 +39,7 @@
 - `docs/off-route-detection-spec-v0.1.md`：偏航检测规则。
 - `docs/hiking-session-flow-v0.1.md`：完整徒步会话流程。
 - `docs/battery-long-hike-strategy-v0.1.md`：低电量和长时间徒步策略。
+- `docs/ios-location-power-analysis-v0.1.md`：iPhone / iOS 定位耗电分析、目标状态和后续优化方案。
 - `docs/iphone-route-review-spec-v0.1.md`：iPhone 路线详情与复盘规格。
 - `docs/huawei-watch-dev-env.md`：华为手表开发环境记录。
 

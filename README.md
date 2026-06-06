@@ -49,6 +49,7 @@
 - [偏航检测规则](./docs/off-route-detection-spec-v0.1.md)
 - [徒步会话完整流程](./docs/hiking-session-flow-v0.1.md)
 - [低电量与长时间徒步策略](./docs/battery-long-hike-strategy-v0.1.md)
+- [iOS 定位耗电分析、最终目标与优化方案](./docs/ios-location-power-analysis-v0.1.md)
 - [iPhone 路线详情与复盘页面规格](./docs/iphone-route-review-spec-v0.1.md)
 
 ### 华为手表
