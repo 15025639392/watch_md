@@ -1082,17 +1082,23 @@ private struct RoutePatternMap: UIViewRepresentable {
         mapView.removeOverlays(mapView.overlays)
         mapView.removeAnnotations(mapView.annotations)
 
-        let coordinates = route.original.points.map(\.locationCoordinate)
-        if coordinates.count >= 2 {
-            let polyline = MKPolyline(coordinates: coordinates, count: coordinates.count)
-            context.coordinator.routeOverlay = polyline
-            mapView.addOverlay(polyline)
-        }
+	        let coordinates = route.original.points.map(\.locationCoordinate)
+	        if coordinates.count >= 2 {
+	            let polyline = MKPolyline(coordinates: coordinates, count: coordinates.count)
+	            context.coordinator.routeOverlay = polyline
+	            mapView.addOverlay(polyline)
+	            mapView.setVisibleMapRect(
+	                polyline.boundingMapRect,
+	                edgePadding: UIEdgeInsets(top: 96, left: 34, bottom: 260, right: 34),
+	                animated: false
+	            )
+	        } else {
+	            mapView.setRegion(route.mapRegion, animated: false)
+	        }
 
-        mapView.addAnnotation(RouteEndpointAnnotation(title: "起点", coordinate: route.route.startPoint.locationCoordinate))
-        mapView.addAnnotation(RouteEndpointAnnotation(title: "终点", coordinate: route.route.endPoint.locationCoordinate))
-        mapView.setRegion(route.mapRegion, animated: false)
-    }
+	        mapView.addAnnotation(RouteEndpointAnnotation(title: "起点", coordinate: route.route.startPoint.locationCoordinate))
+	        mapView.addAnnotation(RouteEndpointAnnotation(title: "终点", coordinate: route.route.endPoint.locationCoordinate))
+	    }
 
     final class Coordinator: NSObject, MKMapViewDelegate {
         weak var routeOverlay: MKPolyline?
@@ -1203,6 +1209,7 @@ private final class RouteEndpointAnnotation: NSObject, MKAnnotation {
 private final class DirectionPatternPolylineRenderer: MKOverlayPathRenderer {
     private let polyline: MKPolyline
     private let routeColor = UIColor.systemBlue
+    private let haloColor = UIColor.white.withAlphaComponent(0.92)
 
     init(polyline: MKPolyline) {
         self.polyline = polyline
@@ -1225,6 +1232,12 @@ private final class DirectionPatternPolylineRenderer: MKOverlayPathRenderer {
 
     override func draw(_ mapRect: MKMapRect, zoomScale: MKZoomScale, in context: CGContext) {
         guard path != nil else { return }
+
+        configureRouteHalo(to: context, atZoomScale: zoomScale)
+        context.setStrokeColor(haloColor.cgColor)
+        context.addPath(path)
+        context.strokePath()
+
         configureRouteStroke(to: context, atZoomScale: zoomScale)
         context.setStrokeColor(routeColor.cgColor)
         context.addPath(path)
@@ -1232,36 +1245,46 @@ private final class DirectionPatternPolylineRenderer: MKOverlayPathRenderer {
         drawDirectionPattern(in: context, zoomScale: zoomScale)
     }
 
-    private func configureRouteStroke(to context: CGContext, atZoomScale zoomScale: MKZoomScale) {
-        let lineWidth = max(3.5, MKRoadWidthAtZoomScale(zoomScale) * 0.45)
-        context.setLineWidth(lineWidth)
+    private func configureRouteHalo(to context: CGContext, atZoomScale zoomScale: MKZoomScale) {
+        context.setLineWidth(routeLineWidth(atZoomScale: zoomScale) + 5 / zoomScale)
         context.setLineCap(.round)
         context.setLineJoin(.round)
     }
 
-    private func drawDirectionPattern(in context: CGContext, zoomScale: MKZoomScale) {
-        let mapPoints = polyline.points()
-        guard polyline.pointCount >= 2 else { return }
+    private func configureRouteStroke(to context: CGContext, atZoomScale zoomScale: MKZoomScale) {
+        context.setLineWidth(routeLineWidth(atZoomScale: zoomScale))
+        context.setLineCap(.round)
+        context.setLineJoin(.round)
+    }
 
-        let arrowSpacing = 46 / zoomScale
-        let arrowLength = 12 / zoomScale
-        let arrowHalfWidth = 5 / zoomScale
-        var distanceUntilNextArrow = arrowSpacing
+    private func routeLineWidth(atZoomScale zoomScale: MKZoomScale) -> CGFloat {
+        max(9 / zoomScale, MKRoadWidthAtZoomScale(zoomScale) * 1.2)
+    }
 
-        context.saveGState()
-        context.setFillColor(UIColor.white.cgColor)
+	    private func drawDirectionPattern(in context: CGContext, zoomScale: MKZoomScale) {
+	        let mapPoints = polyline.points()
+	        guard polyline.pointCount >= 2 else { return }
 
-        for index in 1..<polyline.pointCount {
+	        let routeWidth = routeLineWidth(atZoomScale: zoomScale)
+	        let arrowLength = routeWidth * 2.1
+	        let arrowHalfWidth = routeWidth * 0.72
+	        let arrowSpacing = routeWidth * 7.2
+	        var distanceUntilNextArrow = arrowSpacing * 0.55
+
+	        context.saveGState()
+	        context.setFillColor(UIColor.white.cgColor)
+
+	        for index in 1..<polyline.pointCount {
             let start = point(for: mapPoints[index - 1])
             let end = point(for: mapPoints[index])
-            let dx = end.x - start.x
-            let dy = end.y - start.y
-            let segmentLength = hypot(dx, dy)
-            guard segmentLength > arrowLength else { continue }
+	            let dx = end.x - start.x
+	            let dy = end.y - start.y
+	            let segmentLength = hypot(dx, dy)
+	            guard segmentLength > 0 else { continue }
 
-            var traveled: CGFloat = 0
-            while traveled + distanceUntilNextArrow < segmentLength {
-                traveled += distanceUntilNextArrow
+	            var traveled: CGFloat = 0
+	            while traveled + distanceUntilNextArrow < segmentLength {
+	                traveled += distanceUntilNextArrow
                 let progress = traveled / segmentLength
                 let center = CGPoint(
                     x: start.x + dx * progress,

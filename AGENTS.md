@@ -11,6 +11,7 @@
 - iPhone 负责 GPX 导入、路线详情、路线同步和运动后复盘。
 - Apple Watch 负责腕上地图、路线跟随、偏航提醒、轨迹记录、暂停/继续/结束和结束后回传。
 - 第一版重点完成端到端闭环，不优先扩展 Android、Wear OS、华为手表或路线社区。
+- 华为验证工程骨架位于 `huawei-validation/`，仅用于 Apple Watch MVP 之后的平台预研；不要把它们写成首发范围。
 
 ## 工作优先级
 
@@ -28,6 +29,8 @@
 - `docs/watchos-development-prompt-implementation-plan-v0.1.md`：可复制给 Codex 的开发提示词与实施计划。
 - `docs/watchos-development-release-flow-v0.1.md`：开发准备、真机验证、TestFlight、App Store 上架和发布后维护流程。
 - `docs/current-ui-operation-alignment-v0.1.md`：当前 UI、操作入口、临时实现和目标规格边界，避免后续 AI 误解当前代码状态。
+- `docs/huawei-sdk-application-integration-v0.1.md`：华为 Wear Engine、Health Kit、AppGallery 的申请、SDK 获取、接入使用和材料清单。
+- `huawei-validation/README.md`：华为 WATCH、GT 和手机侧 Wear Engine 验证工程骨架入口。
 - `docs/hiking-data-model-v0.1.md`：路线、会话、轨迹、事件和同步对象模型。
 - `docs/watchconnectivity-sync-protocol-v0.1.md`：iPhone 与 Apple Watch 的同步协议。
 - `docs/ios-watchos-operation-data-linkage-v0.1.md`：iOS / watchOS 操作分工、页面动作、数据归属和跨端联动。

@@ -97,8 +97,20 @@ open -a /Applications/DevEco-Studio.app
 | 目标 | 建议选择 |
 | --- | --- |
 | HarmonyOS 智能手表 App | `Wearable` / ArkTS / Stage 模型 |
-| Watch GT、Fit、部分长续航穿戴设备 | 先验证是否只支持 `liteWearable` 或 WearEngine 协同 |
+| Watch GT、Fit、部分长续航穿戴设备 | 先验证是否只支持 `liteWearable`、兼容 JS 的类 Web 开发范式或 WearEngine 协同 |
 | 手机 App + 手表联动 | 手机侧 HarmonyOS App + WearEngine 能力 |
+
+语言选择上，不要把 WATCH 和 GT 当成同一套手表工程。WATCH 数字系列优先按智能可穿戴路径使用 ArkTS + ArkUI；GT 系列优先按轻量级智能可穿戴路径或手机协同路径验证，轻量穿戴开发更偏兼容 JS 的类 Web 范式，具体仍以目标机型、DevEco 模板和 AGC 后台支持为准。
+
+初期建议分开建工程：
+
+| 工程 | 目标 | 说明 |
+| --- | --- | --- |
+| `huawei-watch-demo` | WATCH 数字系列 | 完整手表 App 验证，`Wearable` / ArkTS / ArkUI |
+| `huawei-gt-lite-demo` | WATCH GT 系列 | 轻量手表 App 验证，`liteWearable` / 兼容 JS 的类 Web 范式 |
+| `huawei-phone-sync-demo` | 手机侧 | Wear Engine 路线下发、ACK 和状态同步验证 |
+
+这些工程可以复用模型和协议，但不要默认复用同一个手表端应用。WATCH 和 GT 的应用类型、安装入口、上架路径和后台能力都要分别确认。
 
 户外 App 的 MVP 建议先做：
 
@@ -139,6 +151,8 @@ open -a /Applications/DevEco-Studio.app
 | 发布路径 | 是否能上架 AppGallery 手表端应用或只能做手机侧联动 |
 
 ## 官方入口
+
+申请 Wear Engine / Health Kit、获取 SDK、准备 AppGallery 上架材料时，先读 [华为 Wear Engine / Health Kit / AppGallery 申请与 SDK 接入说明](./huawei-sdk-application-integration-v0.1.md)。
 
 - [DevEco Studio 下载页](https://developer.huawei.com/consumer/cn/deveco-studio/)
 - [HarmonyOS Wearable App Development](https://developer.huawei.com/consumer/en/multidevice/wearables/get-started/)
