@@ -5,6 +5,7 @@ import WatchConnectivity
 final class WatchSessionUploadService: NSObject {
     var onStatusChange: ((String) -> Void)?
     var onRouteInstalled: ((InstalledRoute) -> Void)?
+    var onControlRequest: ((WatchControlRequest) async -> Void)?
 
     private let engine: WatchSessionUploadEngine
     private let routeInstaller: WatchRouteInstaller
@@ -155,6 +156,9 @@ final class WatchSessionUploadService: NSObject {
                 await handleAckData(data)
             case .routeManifest, .routePayload:
                 await handleRouteData(data)
+            case .watchControlRequest:
+                let envelope = try RouteSyncCodec.decoder.decode(SyncEnvelope<WatchControlRequest>.self, from: data)
+                await onControlRequest?(envelope.payload)
             default:
                 onStatusChange?("收到暂不处理的数据：\(header.kind.rawValue)")
             }

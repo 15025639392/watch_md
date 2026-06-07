@@ -21,6 +21,17 @@ final class iPhoneSessionSyncService: NSObject, ObservableObject {
     private var routeSyncCoordinator: RouteSyncCoordinator?
     private var pendingRoute: InstalledRoute?
 
+    func requestLiveSnapshotFromWatch() {
+        do {
+            let request = WatchControlRequest(action: .sendLiveSnapshot, reason: "iphoneWatchHubRefresh")
+            let envelope = try SessionSyncCodec.makeWatchControlRequestEnvelope(request)
+            try transfer(envelope)
+            lastSyncMessage = "已请求 Watch 立即回传"
+        } catch {
+            lastSyncMessage = "请求 Watch 回传失败：\(error.localizedDescription)"
+        }
+    }
+
     override init() {
         let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("ReceivedSessions", isDirectory: true)
@@ -150,7 +161,7 @@ final class iPhoneSessionSyncService: NSObject, ObservableObject {
                 let envelope = try RouteSyncCodec.decoder.decode(SyncEnvelope<SessionSummary>.self, from: data)
                 ack = try await receiver.receiveSummary(envelope)
                 sessionId = envelope.payload.sessionId
-            case .routeManifest, .routePayload:
+            case .routeManifest, .routePayload, .watchControlRequest:
                 lastSyncMessage = "收到非会话回传数据：\(header.kind.rawValue)"
                 return
             }
