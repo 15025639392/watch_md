@@ -1,6 +1,6 @@
 # 手表设备支持情况与户外 App 开发调研
 
-调研日期：2026-06-05；Garmin/Suunto/COROS 复查：2026-06-08；小米/OPPO/vivo 复查：2026-06-08  
+调研日期：2026-06-05；Garmin/Suunto/COROS 复查：2026-06-08；小米/OPPO/vivo 复查：2026-06-08；Wear OS 国内适配复查：2026-06-08  
 重点平台：Apple Watch、华为手表、Wear OS、Garmin、Suunto、COROS、小米、OPPO、vivo  
 调研目标：面向徒步人群，梳理主流智能手表对户外 App 的支持能力、手表端可开发功能、手机 App 与手表 App 的联动方式，以及产品落地建议。
 
@@ -10,7 +10,7 @@
 
 如果目标人群明确是徒步用户，平台判断要从“能不能开发完整 App”扩展为“能不能稳定完成长时间路线导航、偏航提醒、爬升统计、返航和离线使用”。因此 Apple Watch 仍适合首发验证产品体验，但 Garmin/佳明的重要性会上升，尤其适合专业徒步、长线徒步和重度户外用户。
 
-Wear OS 应作为 Android 用户侧的备选平台纳入路线图。它具备 Health Services、Data Layer 和 Maps SDK on Wear OS 等开发路径，适合做 Android 手机 + Wear OS 手表的双端产品，但机型、厂商系统层和电量表现需要实机验证。
+Wear OS 应作为 Android 用户侧的备选平台纳入路线图。它具备 Health Services、Data Layer 和 Maps SDK on Wear OS 等开发路径，适合做 Android 手机 + Wear OS 手表的双端产品，但中国大陆市场还必须额外验证 Google Play services、Google Play、配对 App、国内 ROM、地图服务和厂商机型版本差异。不能把“海外 Wear OS 可行”直接等同于“中国大陆手机 + Wear OS 手表可稳定落地”。
 
 专业户外品牌如 Garmin、Suunto、COROS 在硬件续航、运动算法和专业户外体验上更强，但开放方式不同：Garmin 具备 Connect IQ 手表应用生态和 Garmin Connect 云端 API，最值得优先评估；Suunto 可通过 Partner Program、Cloud API 和 SuuntoPlus Sports Apps 接入；COROS 当前更适合做数据同步和路线同步合作，不应假设可以开发完整自有手表 App。
 
@@ -254,11 +254,40 @@ Wear OS 是 Android 生态内最接近 Apple Watch 的通用第三方手表 App 
 4. Wear OS 机型差异明显，尤其是 Pixel Watch、Samsung Galaxy Watch 和其他厂商设备在系统版本、传感器、续航和厂商服务上可能不同。
 5. 如果产品已有 Android 用户基础，Wear OS 可以排在华为之前做验证；如果目标用户主要在中国大陆，还需要结合华为、荣耀、小米等生态重新排序。
 
+### Wear OS 中国大陆市场适配判断
+
+2026-06-08 复查：Android Developers 专门提供了面向中国市场创建 Wear OS App 的说明，核心前提是中国市场存在没有预装 Google Play services 的 Android 手机。官方建议开发者在中国市场使用特定旧版 Google Play services 依赖，并在运行时检查 Google Play services API 是否可用。这说明 Wear OS 的中国市场适配不是单纯“手表支持 Wear OS”即可成立，还要同时验证手机侧 Google 服务、配对链路和应用分发。
+
+对徒步 App 而言，国内市场的 Wear OS 适配要拆成三类：
+
+| 场景 | 可行性 | 主要问题 | 产品建议 |
+| --- | --- | --- | --- |
+| 国内用户 + 海外版 Wear OS 手表 + 有 GMS / Google Play 的 Android 手机 | 相对可行 | 需要确认配对 App、Google Play、Health Services、Data Layer、Maps SDK 是否正常；地图和网络服务可能受地区影响 | 可作为 Wear OS 首轮验证组合 |
+| 国内用户 + Xiaomi / OPPO / OnePlus 等 Wear OS 机型 + 国内 Android ROM | 不确定 | 国内 ROM 可能缺少 Google Play services 或 Google Play；厂商配对 App、健康 App 和应用商店路径可能不同 | 必须按具体型号和手机 ROM 实机验证 |
+| 国内用户 + 厂商非 Wear OS 手表 | 不应归入 Wear OS | 通常运行厂商自研系统，不能安装标准 Wear OS App，也不能默认使用 Health Services / Data Layer | 走小米、OPPO、vivo、华为等厂商生态验证 |
+
+国内 Wear OS 配套手表的重点风险：
+
+1. 手机侧 Google Play services：国内 Android 手机可能没有预装，Data Layer、Wear OS API、Google Play 分发和 Maps SDK 相关能力都可能受影响。
+2. 应用分发：如果用户不能稳定使用 Google Play，手表端 App 安装、更新和权限授权需要验证替代路径；不能默认通过国内手机应用商店完成 Wear OS 手表 App 分发。
+3. 配对 App：部分 Wear OS 手表使用 Google Pixel Watch app、Samsung Wearable app、品牌自有 App 或 Google 相关服务完成配对；在国内 ROM 上可能表现不同。
+4. 地图能力：Maps SDK for Android on Wear OS 是官方能力，但国内网络、地图数据、底图可用性和授权成本需要单独验证；MVP 仍应优先路线线框和轻量离线资源。
+5. 机型版本差异：同名或近似产品可能存在国际版 Wear OS、中国区自研系统或不同健康生态，必须按 SKU、销售地区和系统版本确认。
+6. 户外续航：国内适配即使能安装和通信，也要验证 4-10 小时徒步中的定位、心率、地图和 Data Layer 同步耗电。
+
+建议的国内 Wear OS 首轮实机组合：
+
+1. 一台明确支持 Wear OS 且可用 Google Play 的手表，例如 Xiaomi Watch 2 Pro、OPPO Watch X / OnePlus Watch 2、Samsung Galaxy Watch 或 Pixel Watch 的可获得版本。
+2. 一台带完整 GMS / Google Play 的 Android 手机，验证标准 Wear OS 路线。
+3. 一台常见中国大陆 Android ROM 手机，验证缺少或弱化 Google 服务时，配对、安装、Data Layer、Health Services 和 Maps SDK 是否失败或降级。
+4. 同一条 GPX 徒步 Demo：手机下发路线，手表记录 1 小时，展示路线线框、心率/距离/海拔，触发一次偏航提醒，结束后回传轨迹摘要。
+
 ### Wear OS 参考资料
 
 - Wear OS Health Services: https://developer.android.com/health-and-fitness/guides/health-services
 - Wear OS Data Layer: https://developer.android.com/training/wearables/data/sync
 - Wear OS Maps SDK: https://developers.google.com/maps/documentation/android-sdk/wear
+- Android Developers - Create Wear OS apps for China: https://developer.android.google.cn/training/wearables/creating-app-china
 
 ### 中国 Android 厂商生态参考资料
 
@@ -388,7 +417,7 @@ Garmin 的关键限制也要写清楚：
 | 平台 | 必测项目 | 通过标准 |
 | --- | --- | --- |
 | Apple Watch | HKWorkoutSession 后台记录、Core Location、心率、路线下发、偏航提醒、结束后同步 | 1 小时连续记录无丢失；断开手机后仍能继续；运动结束可回传完整轨迹 |
-| Wear OS | Health Services ExerciseClient、GPS/心率/海拔、Data Layer 资源下发、地图显示 | Android 手机下发路线稳定；手表端能独立完成一次户外记录 |
+| Wear OS | Health Services ExerciseClient、GPS/心率/海拔、Data Layer 资源下发、地图显示、国内 ROM / GMS / Google Play / 配对 App | 标准 GMS 手机能跑通；常见国内 ROM 明确成功、失败或降级路径；手表端能独立完成一次户外记录 |
 | 华为 | Wear Engine 消息/文件、Health Kit 权限、WATCH / GT 目标机型安装和上架路径 | 至少 `WATCH 5/4` 与 `WATCH GT 5/6` 两条主线验证通过，明确地区、系统和手机生态限制 |
 | 小米 | Xiaomi Wear OS 目标机型、非 Wear OS 国内机型、小米运动健康 / Mi Fitness 数据和应用分发路径 | Wear OS 机型能跑通通用 Android + Wear OS Demo；非 Wear OS 机型明确是否存在公开 SDK 和发布路径 |
 | OPPO | OPPO / OnePlus Wear OS 目标机型、非 Wear OS 国内机型、OPPO 健康数据和应用分发路径 | Wear OS 机型能跑通通用 Android + Wear OS Demo；非 Wear OS 机型明确是否存在公开 SDK 和发布路径 |
@@ -457,7 +486,7 @@ Garmin 的关键限制也要写清楚：
 | P0 | Apple Watch 实机验证 | 验证后台运动、定位、心率、路线同步和电量表现 |
 | P0 | 华为 WATCH / GT 目标机型清单 | 明确优先验证 WATCH 数字系列和 WATCH GT 系列，而不是泛称支持华为 |
 | P0 | 手机-手表组合矩阵 | 明确 iPhone/Android/华为手机与 Apple Watch/Wear OS/华为手表的支持边界 |
-| P1 | Wear OS 实机验证 | 验证 Health Services、Data Layer、地图和电量表现 |
+| P1 | Wear OS 国内适配实机验证 | 验证 Health Services、Data Layer、地图、电量、GMS / Google Play、配对 App 和国内 ROM 表现 |
 | P1 | Garmin Connect IQ/API 验证 | 验证 Courses API 路线/点位下发、Activity API 活动文件读取、Connect IQ Data Field 轻量导航/提醒能力 |
 | P1 | 华为 Wear Engine Demo 验证 | 验证手机下发路线、手表回传状态 |
 | P1 | 华为 Health Kit 数据权限验证 | 确认运动数据读取、写入和授权流程 |
