@@ -38,9 +38,13 @@
 | --- | --- |
 | 本地脚本可读取 WATCH payload | `node huawei-validation/scripts/run-local-flow-demo.mjs` 成功 |
 | 本地脚本可读取 GT payload | `node huawei-validation/scripts/run-local-flow-demo.mjs` 成功 |
+| 本地场景脚本可生成摘要 | `node huawei-validation/scripts/run-local-scenario-demo.mjs` 成功 |
+| 本地场景摘要包含 4 个场景 | `summary.json` 中 `scenarioCount` 为 `4` |
 | WATCH ACK 包含 `storedPointCount` | 大于等于 2 |
 | GT ACK 包含 `storedWaypointCount` | 大于等于 2 |
 | WATCH / GT 状态区分 `deviceLine` | 分别为 `WATCH` 和 `GT` |
+| 断连重试场景有 retryable error | `events.jsonl` 中存在 `watch-disconnected-retry` / `retryableError` |
+| 非法 WATCH payload 被拒绝 | `events.jsonl` 中存在 `invalid-watch-payload` / `rejected` |
 
 ## 结论
 

@@ -83,6 +83,16 @@ bash scripts/check-harmonyos-watch-env.sh
 
 脚本会检查 DevEco Studio、HarmonyOS SDK、WearEngine、liteWearable 预览器、Node、ohpm、hdc 和 Java。
 
+华为账号和真机到位前，可以先跑本地协议与场景模拟：
+
+```sh
+node huawei-validation/scripts/run-local-flow-demo.mjs
+node huawei-validation/scripts/run-local-scenario-demo.mjs
+bash huawei-validation/scripts/check-h0-readiness.sh
+```
+
+场景模拟会生成 `huawei-validation/generated/local-simulation/summary.json`、`events.jsonl` 和 `report.md`，仅用于验证本地流程，不代表 Wear Engine 真机通信已经接通。
+
 ## 文档维护规则
 
 - 新规格文档放在 `docs/` 下，文件名建议使用 `主题-v0.1.md` 形式。
