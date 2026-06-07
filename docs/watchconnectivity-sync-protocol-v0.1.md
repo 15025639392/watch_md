@@ -35,6 +35,7 @@
 | 路线 manifest | iPhone -> Watch | `sendMessage` + `transferUserInfo` | 高 |
 | 路线 payload | iPhone -> Watch | `transferFile` | 高 |
 | 路线 ACK | Watch -> iPhone | `sendMessage` + `transferUserInfo` | 高 |
+| Watch 控制请求 | iPhone -> Watch | `sendMessage` + `transferUserInfo` | 中 |
 | 会话实时状态 | Watch -> iPhone | `sendMessage` / `updateApplicationContext` | 中 |
 | 轨迹 chunk | Watch -> iPhone | `transferUserInfo` / `transferFile` | 高 |
 | 事件 chunk | Watch -> iPhone | `transferUserInfo` | 高 |
@@ -311,6 +312,22 @@ ACK 也是 `SyncEnvelope`。
 
 1. 对端可达时用 `sendMessage`。
 2. 同时对关键 ACK 使用 `transferUserInfo` 兜底。
+
+## iPhone 请求 Watch 主动回传
+
+iPhone Watch 中枢可以向 Watch 发送 `watchControlRequest`，用于请求 Watch 立即补发当前状态，而不是等待下一次定位点或会话状态边界。
+
+MVP 已支持的 action：
+
+| action | 方向 | Watch 行为 |
+| --- | --- | --- |
+| `sendLiveSnapshot` | iPhone -> Watch | 如果 Watch 有 active / paused 会话，立即发送 `liveTrackSnapshot`；如果本地有已结束且待回传会话，触发完整会话回传；如果没有可用会话，仅更新 Watch 本地回传状态 |
+
+约束：
+
+1. `sendMessage` 可达时优先用于即时刷新。
+2. 不可达时可以进入 `transferUserInfo` 队列，但不承诺能立即唤醒 Watch App。
+3. 该请求只触发补发已有状态，不改变 Watch 当前会话状态，也不替代结束后的可靠完整回传。
 
 ## 断连恢复
 

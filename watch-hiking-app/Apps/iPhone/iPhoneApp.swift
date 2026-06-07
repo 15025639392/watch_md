@@ -591,6 +591,7 @@ struct WatchHubMetric: View {
 struct WatchSessionSyncListView: View {
     @EnvironmentObject private var sessionSyncService: iPhoneSessionSyncService
     @State private var isShowingLiveMap = false
+    @State private var didRequestInitialSnapshot = false
 
     private var pendingRecords: [ReceivedSessionRecord] {
         sessionSyncService.receivedSessions.filter { $0.displayState != .completed }
@@ -609,6 +610,7 @@ struct WatchSessionSyncListView: View {
                         snapshot: sessionSyncService.liveTrackSnapshot,
                         connectionTitle: sessionSyncService.watchConnectionTitle,
                         connectionDetail: sessionSyncService.watchConnectionDetail,
+                        syncMessage: sessionSyncService.lastSyncMessage,
                         isConnected: sessionSyncService.isWatchConnected,
                         onOpenMap: {
                             isShowingLiveMap = true
@@ -636,6 +638,20 @@ struct WatchSessionSyncListView: View {
         }
         .navigationTitle("Watch 中枢")
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            guard !didRequestInitialSnapshot else { return }
+            didRequestInitialSnapshot = true
+            sessionSyncService.requestLiveSnapshotFromWatch()
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    sessionSyncService.requestLiveSnapshotFromWatch()
+                } label: {
+                    Label("刷新", systemImage: "arrow.clockwise")
+                }
+            }
+        }
         .fullScreenCover(isPresented: $isShowingLiveMap) {
             WatchLiveTrackFullScreenView(
                 snapshot: sessionSyncService.liveTrackSnapshot,
@@ -680,48 +696,63 @@ struct WatchLiveTrackCard: View {
     let snapshot: LiveTrackSnapshot?
     let connectionTitle: String
     let connectionDetail: String
+    let syncMessage: String
     let isConnected: Bool
     let onOpenMap: () -> Void
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            if let snapshot, !snapshot.recentPoints.isEmpty {
-                SessionTrackMap(
-                    trackPoints: snapshot.recentPoints,
-                    routePoints: snapshot.routePoints,
-                    projectedRouteCoordinate: snapshot.projectedRouteCoordinate,
-                    endpointMode: .currentOnly
-                )
-            } else {
-                ZStack {
-                    AppTheme.secondaryFill
-                    ContentUnavailableView {
-                        Label("暂无实时轨迹", systemImage: "location.slash")
-                    } description: {
-                        Text("开始徒步后显示 Watch 当前位置和最近轨迹。")
+        VStack(alignment: .leading, spacing: 6) {
+            ZStack(alignment: .bottom) {
+                if let snapshot, !snapshot.recentPoints.isEmpty {
+                    SessionTrackMap(
+                        trackPoints: snapshot.recentPoints,
+                        routePoints: snapshot.routePoints,
+                        projectedRouteCoordinate: snapshot.projectedRouteCoordinate,
+                        endpointMode: .currentOnly
+                    )
+                } else {
+                    ZStack {
+                        AppTheme.secondaryFill
+                        ContentUnavailableView {
+                            Label("暂无实时轨迹", systemImage: "location.slash")
+                        } description: {
+                            Text("开始徒步后显示 Watch 当前位置和最近轨迹。")
+                        }
                     }
                 }
             }
-        }
-        .frame(height: 360)
-        .contentShape(RoundedRectangle(cornerRadius: 8))
-        .onTapGesture {
-            if snapshot?.recentPoints.isEmpty == false {
-                onOpenMap()
+            .frame(height: 360)
+            .contentShape(RoundedRectangle(cornerRadius: 8))
+            .onTapGesture {
+                if snapshot?.recentPoints.isEmpty == false {
+                    onOpenMap()
+                }
             }
+            .overlay(alignment: .bottom) {
+                WatchMapBottomPanel(
+                    title: snapshot == nil ? "等待 Watch 位置" : snapshot?.watchTopStatusText ?? "Watch 实时轨迹",
+                    subtitle: snapshot?.watchReturnedAtText ?? syncMessage,
+                    hint: snapshot?.watchBottomHintText ?? (isConnected ? "同步可用" : "不可用"),
+                    returnDirection: snapshot?.returnToRouteDirectionText,
+                    heartRate: snapshot?.heartRateText ?? "-- bpm",
+                    distance: snapshot?.workoutDistanceText ?? "--",
+                    energy: snapshot?.energyText ?? "-- kcal"
+                )
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(isConnected ? AppTheme.green : AppTheme.orange)
+                    .frame(width: 7, height: 7)
+                Text(syncMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+            }
+            .padding(.horizontal, 2)
         }
-        .overlay(alignment: .bottom) {
-            WatchMapBottomPanel(
-                title: snapshot == nil ? "等待 Watch 位置" : snapshot?.watchTopStatusText ?? "Watch 实时轨迹",
-                subtitle: snapshot?.watchReturnedAtText ?? connectionDetail,
-                hint: snapshot?.watchBottomHintText ?? (isConnected ? "同步可用" : "不可用"),
-                returnDirection: snapshot?.returnToRouteDirectionText,
-                heartRate: snapshot?.heartRateText ?? "-- bpm",
-                distance: snapshot?.workoutDistanceText ?? "--",
-                energy: snapshot?.energyText ?? "-- kcal"
-            )
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 
@@ -828,7 +859,13 @@ struct WatchMapBottomPanel: View {
         .padding(.top, 9)
         .padding(.bottom, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.ultraThinMaterial.opacity(0.74))
+        .background(AppTheme.mapOverlayPanel)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(AppTheme.mapOverlayBorder)
+                .frame(height: 1)
+        }
+        .shadow(color: .black.opacity(0.16), radius: 10, x: 0, y: -2)
     }
 }
 
@@ -2098,6 +2135,8 @@ private enum AppTheme {
     static let secondaryFill = Color(red: 0.898, green: 0.898, blue: 0.918)
     static let tertiaryFill = Color(red: 0.976, green: 0.976, blue: 0.984)
     static let line = Color(red: 0.820, green: 0.820, blue: 0.839)
+    static let mapOverlayPanel = Color.white
+    static let mapOverlayBorder = Color.black.opacity(0.10)
     static let blue = Color(red: 0.000, green: 0.478, blue: 1.000)
     static let green = Color(red: 0.204, green: 0.780, blue: 0.349)
     static let orange = Color(red: 1.000, green: 0.584, blue: 0.000)

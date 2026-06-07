@@ -109,6 +109,29 @@ public struct LiveTrackSnapshot: Codable, Equatable, Sendable {
     }
 }
 
+public struct WatchControlRequest: Codable, Equatable, Sendable {
+    public enum Action: String, Codable, Sendable {
+        case sendLiveSnapshot
+    }
+
+    public var requestId: String
+    public var action: Action
+    public var createdAt: Date
+    public var reason: String?
+
+    public init(
+        requestId: String = UUID().uuidString,
+        action: Action,
+        createdAt: Date = Date(),
+        reason: String? = nil
+    ) {
+        self.requestId = requestId
+        self.action = action
+        self.createdAt = createdAt
+        self.reason = reason
+    }
+}
+
 public struct EventChunk: Codable, Equatable, Sendable {
     public var sessionId: String
     public var chunkId: String
@@ -188,6 +211,17 @@ public enum SessionSyncError: Error, Equatable {
 }
 
 public enum SessionSyncCodec {
+    public static func makeWatchControlRequestEnvelope(_ request: WatchControlRequest) throws -> SyncEnvelope<WatchControlRequest> {
+        let data = try RouteSyncCodec.encoder.encode(request)
+        return SyncEnvelope(
+            sender: .iphone,
+            kind: .watchControlRequest,
+            entityId: request.requestId,
+            payloadChecksum: RouteSyncCodec.checksum(data: data),
+            payload: request
+        )
+    }
+
     public static func makeStatusEnvelope(for storedSession: StoredHikingSession) throws -> SyncEnvelope<SessionStatusPayload> {
         let payload = SessionStatusPayload(storedSession: storedSession)
         let data = try RouteSyncCodec.encoder.encode(payload)

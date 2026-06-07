@@ -17,6 +17,7 @@ public enum SyncEnvelopeKind: String, Codable, Sendable {
     case evidenceChunk
     case sessionSummary
     case syncAck
+    case watchControlRequest
 }
 
 public enum SyncAckStatus: String, Codable, Sendable {

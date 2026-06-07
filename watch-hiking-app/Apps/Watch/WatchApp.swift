@@ -124,6 +124,9 @@ final class WatchRouteCardViewModel: ObservableObject {
     func load() async {
         guard !isLoadingRoute else { return }
         uploadService.start()
+        uploadService.onControlRequest = { [weak self] request in
+            await self?.handle(request)
+        }
         isLoadingRoute = true
         errorMessage = nil
         defer { isLoadingRoute = false }
@@ -353,6 +356,28 @@ final class WatchRouteCardViewModel: ObservableObject {
         )
         lastLiveSnapshotSentAt = now
         lastLiveSnapshotPointCount = trackPointCount
+    }
+
+    private func handle(_ request: WatchControlRequest) async {
+        switch request.action {
+        case .sendLiveSnapshot:
+            if session != nil {
+                await sendLiveSnapshotIfNeeded(force: true)
+                uploadStatusText = "已按 iPhone 请求回传"
+                return
+            }
+
+            do {
+                let snapshot = try await recorder.storedSnapshot()
+                guard snapshot.session.status == .finished else {
+                    uploadStatusText = "暂无可回传会话"
+                    return
+                }
+                await uploadService.upload(snapshot)
+            } catch {
+                uploadStatusText = "请求回传失败：\(error.localizedDescription)"
+            }
+        }
     }
 
     private func recordRouteMatchEventIfNeeded(_ match: RouteMatchSnapshot, location: CLLocation) async throws {
