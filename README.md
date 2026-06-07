@@ -39,6 +39,7 @@
 - [WatchOS 徒步 App 产品原型 v0.1](./docs/prototypes/watchos-product-prototype-v0.1.html)
 - [iPhone 徒步 App 产品原型 v0.1](./docs/prototypes/iphone-product-prototype-v0.1.html)
 - [当前 UI 与操作逻辑对齐说明](./docs/current-ui-operation-alignment-v0.1.md)
+- [watchOS 低功耗证据采集设计](./docs/watchos-evidence-logging-design-v0.1.md)
 
 ### 核心功能规格
 

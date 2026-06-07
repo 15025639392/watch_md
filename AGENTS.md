@@ -30,6 +30,7 @@
 - `docs/watchos-development-release-flow-v0.1.md`：开发准备、真机验证、TestFlight、App Store 上架和发布后维护流程。
 - `docs/iphone-watchos-app-store-submission-v0.1.md`：iPhone App + Apple Watch App 上架形态、App Store Connect、TestFlight、审核材料和隐私清单。
 - `docs/current-ui-operation-alignment-v0.1.md`：当前 UI、操作入口、临时实现和目标规格边界，避免后续 AI 误解当前代码状态。
+- `docs/watchos-evidence-logging-design-v0.1.md`：watchOS 低功耗 raw evidence 采集、采样策略、motion/barometer 窗口和回传设计。
 - `docs/huawei-sdk-application-integration-v0.1.md`：华为 Wear Engine、Health Kit、AppGallery 的申请、SDK 获取、接入使用和材料清单。
 - `huawei-validation/README.md`：华为 WATCH、GT 和手机侧 Wear Engine 验证工程骨架入口。
 - `docs/hiking-data-model-v0.1.md`：路线、会话、轨迹、事件和同步对象模型。

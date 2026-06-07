@@ -13,6 +13,7 @@
 3. HealthKit 只负责运动数据关联，不保存路线语义。
 4. Watch 端必须能在 iPhone 断连时独立读写会话数据。
 5. 所有可同步对象都需要稳定 ID、版本和时间戳。
+6. `TrackPoint` 是产品轨迹点，不承载完整 raw evidence；低功耗证据日志、采样策略、motion 和 barometer 窗口见 [watchOS 低功耗证据采集设计 v0.1](./watchos-evidence-logging-design-v0.1.md)。
 
 ## 模型总览
 
@@ -238,10 +239,11 @@ paused -> finished
 ### 采样原则
 
 1. 正常记录默认 3-5 秒采样一次。
-2. 低电量时可以降低采样频率。
-3. 暂停期间默认不写正式轨迹点，可保留低频定位点作为非正式点。
-4. 定位精度太差的点可以标记或丢弃，不能直接触发偏航。
-5. 自由记录模式下，`nearestRouteDistanceMeters` 和 `routeProgressMeters` 保持为空。
+2. 如果需要后续离线清洗和跨平台算法对齐，应另存 `watch_evidence.jsonl`；不要把 motion window、barometer window 或采样 epoch 直接塞入 `TrackPoint`。
+3. 低电量时可以降低采样频率。
+4. 暂停期间默认不写正式轨迹点，可保留低频定位点作为非正式点。
+5. 定位精度太差的点可以标记或丢弃，不能直接触发偏航。
+6. 自由记录模式下，`nearestRouteDistanceMeters` 和 `routeProgressMeters` 保持为空。
 
 ## SessionEvent
 
@@ -319,6 +321,7 @@ MVP 记录 `lowBattery` 事件即可。`batteryModeChanged` 可作为后续事�
 | `movingDurationSeconds` | Int? | 否 | 移动时间 |
 | `distanceMeters` | Double | 是 | 实际距离 |
 | `ascentMeters` | Double? | 否 | 实际累计爬升 |
+| `descentMeters` | Double? | 否 | 实际累计下降 |
 | `averageSpeedMetersPerSecond` | Double? | 否 | 平均速度 |
 | `maxElevationMeters` | Double? | 否 | 最高海拔 |
 | `minElevationMeters` | Double? | 否 | 最低海拔 |
@@ -326,6 +329,12 @@ MVP 记录 `lowBattery` 事件即可。`batteryModeChanged` 可作为后续事�
 | `offRouteEventCount` | Int | 是 | 偏航次数 |
 | `trackPointCount` | Int | 是 | 轨迹点数 |
 | `syncStatus` | Enum | 是 | 同步状态 |
+
+### 说明
+
+1. MVP 当前实现可用 `TrackPoint.elevationMeters` 简单累计爬升。
+2. 接入低功耗证据日志后，`SessionSummary.ascentMeters` / `descentMeters` 应优先来自 `barometer_window.windowAscentMeters` / `barometer_window.windowDescentMeters` 求和。
+3. `Location.altitude` 属于 GNSS altitude line，可作为无气压计兜底或复盘对照，不应重写气压计历史累计值。
 
 ## SyncEnvelope
 
