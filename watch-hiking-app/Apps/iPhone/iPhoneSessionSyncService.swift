@@ -122,8 +122,10 @@ final class iPhoneSessionSyncService: NSObject, ObservableObject {
                 sessionId = envelope.payload.sessionId
             case .liveTrackSnapshot:
                 let envelope = try RouteSyncCodec.decoder.decode(SyncEnvelope<LiveTrackSnapshot>.self, from: data)
-                liveTrackSnapshot = envelope.payload
-                lastSyncMessage = "Watch 位置已回传"
+                if shouldAcceptLiveTrackSnapshot(envelope.payload) {
+                    liveTrackSnapshot = envelope.payload
+                    lastSyncMessage = message(for: envelope.payload)
+                }
                 return
             case .trackChunk:
                 let envelope = try RouteSyncCodec.decoder.decode(SyncEnvelope<TrackChunk>.self, from: data)
@@ -170,6 +172,26 @@ final class iPhoneSessionSyncService: NSObject, ObservableObject {
             sendEnvelopeData(data, kind: envelope.kind.rawValue)
         } catch {
             lastSyncMessage = "ACK 编码失败：\(error.localizedDescription)"
+        }
+    }
+
+    private func shouldAcceptLiveTrackSnapshot(_ snapshot: LiveTrackSnapshot) -> Bool {
+        guard let current = liveTrackSnapshot else { return true }
+        return snapshot.updatedAt >= current.updatedAt
+    }
+
+    private func message(for snapshot: LiveTrackSnapshot) -> String {
+        switch snapshot.status {
+        case .planned:
+            return "Watch 计划状态已回传"
+        case .active:
+            return "Watch 正在记录"
+        case .paused:
+            return "Watch 已暂停"
+        case .finished:
+            return "Watch 已结束，等待完整回传"
+        case .abandoned:
+            return "Watch 已放弃记录"
         }
     }
 

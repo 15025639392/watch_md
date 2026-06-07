@@ -118,6 +118,7 @@ struct RouteListView: View {
     @State private var searchText = ""
     @State private var isImportingGPX = false
     @State private var selectedFilter: RouteFilter = .remote
+    @State private var selectedRouteIsAlreadySynced = false
 
     var body: some View {
         NavigationStack {
@@ -146,6 +147,7 @@ struct RouteListView: View {
                             case .remote:
                                 ForEach(viewModel.summaries, id: \.remoteRouteId) { summary in
                                     Button {
+                                        selectedRouteIsAlreadySynced = false
                                         Task { await viewModel.install(summary: summary) }
                                     } label: {
                                         RemoteRouteCard(summary: summary)
@@ -156,6 +158,7 @@ struct RouteListView: View {
                             case .local:
                                 ForEach(viewModel.importedRoutes, id: \.route.routeId) { route in
                                     Button {
+                                        selectedRouteIsAlreadySynced = false
                                         viewModel.selectedRoute = route
                                     } label: {
                                         InstalledRouteCard(route: route)
@@ -172,6 +175,7 @@ struct RouteListView: View {
                                 } else {
                                     ForEach(viewModel.syncedRoutes, id: \.route.routeId) { route in
                                         Button {
+                                            selectedRouteIsAlreadySynced = true
                                             viewModel.selectedRoute = route
                                         } label: {
                                             SyncedRouteCard(route: route)
@@ -206,6 +210,7 @@ struct RouteListView: View {
                 switch result {
                 case .success(let urls):
                     guard let url = urls.first else { return }
+                    selectedRouteIsAlreadySynced = false
                     Task { await viewModel.importGPX(from: url) }
                 case .failure(let error):
                     viewModel.errorMessage = error.localizedDescription
@@ -244,10 +249,14 @@ struct RouteListView: View {
                 }
             }
             .fullScreenCover(item: Binding(
-                get: { viewModel.selectedRoute.map(IdentifiedRoute.init(route:)) },
+                get: {
+                    viewModel.selectedRoute.map {
+                        IdentifiedRoute(route: $0, isAlreadySynced: selectedRouteIsAlreadySynced)
+                    }
+                },
                 set: { _ in viewModel.selectedRoute = nil }
             )) { identified in
-                RouteDetailView(installedRoute: identified.route) { syncedRoute in
+                RouteDetailView(installedRoute: identified.route, isAlreadySynced: identified.isAlreadySynced) { syncedRoute in
                     viewModel.markSynced(syncedRoute)
                 }
             }
@@ -936,18 +945,34 @@ struct WatchSessionSyncDetailView: View {
                     .background(AppTheme.panel)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
 
-                    if record.canOpenReview {
-                        NavigationLink {
-                            SessionReviewView(record: record)
-                        } label: {
-                            Label("查看复盘", systemImage: "map")
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 44)
+                    if record.shareableEvidenceFileURL != nil || record.canOpenReview {
+                        HStack(spacing: 8) {
+                            if let evidenceFileURL = record.shareableEvidenceFileURL {
+                                ShareLink(item: evidenceFileURL) {
+                                    Label("分享清洗证据", systemImage: "square.and.arrow.up")
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 44)
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(.white)
+                                .background(AppTheme.blue)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+
+                            if record.canOpenReview {
+                                NavigationLink {
+                                    SessionReviewView(record: record)
+                                } label: {
+                                    Label("查看复盘", systemImage: "map")
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 44)
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(.white)
+                                .background(AppTheme.green)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
                         }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.white)
-                        .background(AppTheme.blue)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                 }
                 .padding()
@@ -1237,11 +1262,13 @@ struct SyncedPlaceholder: View {
 
 struct IdentifiedRoute: Identifiable {
     var route: InstalledRoute
-    var id: String { route.route.routeId }
+    var isAlreadySynced: Bool
+    var id: String { "\(route.route.routeId)-\(isAlreadySynced)" }
 }
 
 struct RouteDetailView: View {
     let installedRoute: InstalledRoute
+    let isAlreadySynced: Bool
     let onSynced: (InstalledRoute) -> Void
     @EnvironmentObject private var locationViewModel: iPhoneLocationViewModel
     @StateObject private var viewModel = RouteDetailViewModel()
@@ -1302,12 +1329,18 @@ struct RouteDetailView: View {
                     RouteDetailSheet(installedRoute: installedRoute, viewModel: viewModel) {
                         onSynced(installedRoute)
                     }
+                    .showsSyncAction(!isAlreadySynced)
                         .padding()
                 }
                 .transition(.opacity)
             }
         }
         .background(AppTheme.background)
+        .onAppear {
+            if isAlreadySynced {
+                viewModel.markAlreadySynced()
+            }
+        }
     }
 }
 
@@ -1347,6 +1380,7 @@ struct RouteDetailSheet: View {
     let installedRoute: InstalledRoute
     @ObservedObject var viewModel: RouteDetailViewModel
     let onSynced: () -> Void
+    var showsSyncAction = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -1367,22 +1401,24 @@ struct RouteDetailSheet: View {
                 DetailStatusRow(title: "路线质量", value: "\(installedRoute.route.originalPointCount) 点 · \(installedRoute.turnPoints.count) 转向")
             }
             ReadinessChecklist(viewModel: viewModel)
-            Button {
-                Task {
-                    if await viewModel.sync(installedRoute) {
-                        onSynced()
+            if showsSyncAction {
+                Button {
+                    Task {
+                        if await viewModel.sync(installedRoute) {
+                            onSynced()
+                        }
                     }
+                } label: {
+                    Label(viewModel.buttonTitle, systemImage: viewModel.buttonSystemImage)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
                 }
-            } label: {
-                Label(viewModel.buttonTitle, systemImage: viewModel.buttonSystemImage)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 44)
+                .buttonStyle(.plain)
+                .foregroundStyle(.white)
+                .background(AppTheme.blue)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .disabled(viewModel.isSyncing)
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(.white)
-            .background(AppTheme.blue)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .disabled(viewModel.isSyncing)
 
             Text(viewModel.watchReadinessText)
                 .font(.caption)
@@ -1392,6 +1428,12 @@ struct RouteDetailSheet: View {
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 22))
         .shadow(color: .black.opacity(0.12), radius: 18, x: 0, y: 8)
+    }
+
+    func showsSyncAction(_ showsSyncAction: Bool) -> Self {
+        var copy = self
+        copy.showsSyncAction = showsSyncAction
+        return copy
     }
 }
 
@@ -1973,6 +2015,12 @@ final class RouteDetailViewModel: ObservableObject {
 
     private let syncService = WatchRouteSyncService(transport: iPhoneSessionSyncService.shared)
 
+    func markAlreadySynced() {
+        guard !isSyncing else { return }
+        state = .installed
+        errorMessage = nil
+    }
+
     var statusText: String {
         switch state {
         case .notSynced: "未同步到 Watch"
@@ -2178,6 +2226,14 @@ private extension ReceivedSessionRecord {
             return "缺少"
         }
         return "\(evidenceLineCount)"
+    }
+
+    var shareableEvidenceFileURL: URL? {
+        guard let evidenceByteCount, evidenceByteCount > 0 else { return nil }
+        let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("ReceivedSessions", isDirectory: true)
+        let url = directory.appendingPathComponent("\(sessionId).evidence.jsonl")
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
     }
 
     var missingTrackRanges: [SequenceRange] {
