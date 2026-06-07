@@ -1,7 +1,7 @@
 # 手表设备支持情况与户外 App 开发调研
 
-调研日期：2026-06-05  
-重点平台：Apple Watch、华为手表、Wear OS、Garmin、Suunto、COROS  
+调研日期：2026-06-05；Garmin/Suunto/COROS 复查：2026-06-08；小米/OPPO/vivo 复查：2026-06-08  
+重点平台：Apple Watch、华为手表、Wear OS、Garmin、Suunto、COROS、小米、OPPO、vivo  
 调研目标：面向徒步人群，梳理主流智能手表对户外 App 的支持能力、手表端可开发功能、手机 App 与手表 App 的联动方式，以及产品落地建议。
 
 ## 结论摘要
@@ -13,6 +13,8 @@
 Wear OS 应作为 Android 用户侧的备选平台纳入路线图。它具备 Health Services、Data Layer 和 Maps SDK on Wear OS 等开发路径，适合做 Android 手机 + Wear OS 手表的双端产品，但机型、厂商系统层和电量表现需要实机验证。
 
 专业户外品牌如 Garmin、Suunto、COROS 在硬件续航、运动算法和专业户外体验上更强，但开放方式不同：Garmin 具备 Connect IQ 手表应用生态和 Garmin Connect 云端 API，最值得优先评估；Suunto 可通过 Partner Program、Cloud API 和 SuuntoPlus Sports Apps 接入；COROS 当前更适合做数据同步和路线同步合作，不应假设可以开发完整自有手表 App。
+
+中国 Android 手机厂商生态需要分区域和系统判断。小米和 OPPO 是不同厂商，各自都有需要单独确认的手表型号、地区版本和健康 App 生态；如果具体机型运行 Wear OS，可以按通用 Wear OS 路线验证。中国区或非 Wear OS 机型通常依赖厂商自有系统、健康 App 和有限应用生态，不应默认可安装标准 Wear OS App。vivo 当前重点是 BlueOS/蓝河操作系统，需要验证 SDK、手表应用发布、健康数据和户外传感器权限。
 
 ## 户外 App 需要的核心手表能力
 
@@ -38,6 +40,11 @@ Wear OS 应作为 Android 用户侧的备选平台纳入路线图。它具备 He
 | Android 手机 + Wear OS | 强可行 | Android 手机可通过 Data Layer 与 Wear OS 手表同步路线、资源和状态 | Android 通用智能表主路径 |
 | Android 手机 + 华为手表 | 可行，但要分机型和生态 | 可通过 Huawei Health 配对；开发侧可通过 Wear Engine、Health Kit 等能力做协同，但非华为 Android、地区、AppGallery/HMS Core、机型能力会影响体验 | 中国/华为生态重点验证 |
 | 华为手机 + 华为手表 | 最强华为路径 | 系统、HMS、AppGallery、Wear Engine 和健康生态更完整 | 华为平台优先验证组合 |
+| Xiaomi 手机 + Xiaomi Wear OS 手表 | 可行，但看 GMS/地区 | 若手表为 Wear OS 且能使用 Google Play，可按 Wear OS App 开发；中国 ROM、GMS、Mi Fitness / 小米运动健康和配对路径可能影响体验 | 按 Wear OS 路线验证，不按所有小米手表承诺 |
+| OPPO 手机 + OPPO / OnePlus Wear OS 手表 | 可行，但看 GMS/地区 | 若手表为 Wear OS 且能使用 Google Play，可按 Wear OS App 开发；中国 ROM、GMS、OPPO 健康和配对路径可能影响体验 | 按 Wear OS 路线验证，不按所有 OPPO 手表承诺 |
+| vivo 手机 + vivo 自家手表 | 不确定 | 通常依赖 vivo 健康、BlueOS / 自家系统和厂商应用生态，第三方户外 App、路线下发和健康数据权限需单独验证 | 暂不纳入首发，按 SDK、合作或实机验证处理 |
+| Xiaomi 手机 + Xiaomi 非 Wear OS 手表 | 不确定 | 通常依赖 Mi Fitness / 小米运动健康和小米自有系统生态，第三方户外 App、路线下发和健康数据权限需单独验证 | 暂不纳入首发，按合作或实机验证处理 |
+| OPPO 手机 + OPPO 非 Wear OS 手表 | 不确定 | 通常依赖 OPPO 健康和 OPPO 自有系统生态，第三方户外 App、路线下发和健康数据权限需单独验证 | 暂不纳入首发，按合作或实机验证处理 |
 | iPhone + 华为手表 | 基础可用，深度联动弱 | 可用于部分健康/通知能力，但第三方深度联动通常弱于 Android/Huawei 生态 | 不作为核心研发路径 |
 
 ### Android 手机 + Apple Watch/watchOS
@@ -79,6 +86,22 @@ Apple Watch 的官方设置、配对、应用管理和健康数据能力依赖 i
 4. iOS + 华为手表可以做基础使用，但不应作为深度徒步联动的主路径。
 
 产品结论：Android 手机 + 华为手表可以纳入第二阶段验证，但不要泛称“支持华为手表”。应先确定目标手机类型、目标手表型号、系统版本、地区和上架路径。
+
+### 小米 / OPPO / vivo 补充判断
+
+2026-06-08 复查：这几类平台不能只按手机品牌归类，必须先确认手表操作系统、地区版本、配对 App 和应用分发渠道。
+
+| 平台 | 当前可查开放路径 | 对徒步 App 的意义 | 风险与限制 | 建议 |
+| --- | --- | --- | --- | --- |
+| 小米 | 部分新款手表在海外或特定型号使用 Wear OS；中国区多依赖 Xiaomi HyperOS / Mi Fitness / 小米运动健康生态 | Wear OS 机型可按通用 Wear OS 验证；非 Wear OS 机型更偏原生运动、健康同步和有限应用生态 | 不应默认所有 Xiaomi Watch 都能安装标准 Wear OS App；小米健康数据和手表应用开发开放范围需逐型号确认 | 只把 Wear OS Xiaomi Watch 纳入 Android 通用路径；中国区机型先做资料和实机验证 |
+| OPPO | OPPO Watch X / OnePlus Watch 2 等存在 Wear OS 路线；中国区 OPPO Watch 系列和健康生态需按型号确认 | Wear OS 机型可用 Health Services、Data Layer、Maps SDK；品牌健康生态可作为后续合作或数据同步方向 | 国内外型号系统可能不同；OPPO 健康数据 API、手表应用发布和后台能力没有统一公开结论 | Wear OS 机型按 Wear OS 验证；非 Wear OS 机型暂不进入研发排期 |
+| vivo | vivo BlueOS / 蓝河操作系统已有开发者生态入口和 SDK 方向，vivo WATCH 系列也有自家健康 App 生态 | 有潜力做中国区手机-手表协同验证，尤其是 vivo 手机用户 | 需要确认 BlueOS SDK 是否面向手表第三方 App、是否能访问定位/健康/运动、是否有应用发布路径和目标机型支持 | P2/P3 资料验证，暂不作为 Apple Watch MVP 后的第一平台 |
+
+对本项目而言，这三类平台的共同处理原则：
+
+1. 如果目标手表是 Wear OS，优先归入 Wear OS 路线，而不是按小米或 OPPO 品牌单独设计。
+2. 如果目标手表是厂商自研系统，先验证是否存在公开 SDK、手表应用商店、健康数据 API、定位/传感器权限和路线/文件下发能力。
+3. 不把小米、OPPO、vivo 纳入 Apple Watch MVP；它们属于 Android/中国区扩展平台调研。
 
 ## 徒步人群产品侧重点
 
@@ -237,60 +260,102 @@ Wear OS 是 Android 生态内最接近 Apple Watch 的通用第三方手表 App 
 - Wear OS Data Layer: https://developer.android.com/training/wearables/data/sync
 - Wear OS Maps SDK: https://developers.google.com/maps/documentation/android-sdk/wear
 
+### 中国 Android 厂商生态参考资料
+
+- Google Wear OS developer docs: https://developer.android.com/training/wearables
+- Xiaomi Watch 2 Pro product page: https://www.mi.com/global/product/xiaomi-watch-2-pro/
+- Xiaomi Watch S4 product page: https://www.mi.com/global/product/xiaomi-watch-s4/
+- OPPO Watch X product page: https://www.oppo.com/en/accessories/watch-x/
+- OnePlus Watch 2 product page: https://www.oneplus.com/us/oneplus-watch-2
+- vivo BlueOS developer: https://developer.vivo.com/product/blueos
+- vivo WATCH product page: https://www.vivo.com.cn/vivo/watch
+
 ## 专业户外表生态补充调研
 
 专业户外表不应按“能否做完整第三方手表 App”单一维度判断。更实际的评估方式是区分三件事：是否能开发手表端功能、是否能把路线/训练计划推到设备、是否能读取运动后的活动数据。
 
 | 平台 | 开放能力 | 适合做什么 | 不适合先假设什么 | 当前建议 |
 | --- | --- | --- | --- | --- |
-| Garmin | Connect IQ SDK、Garmin Connect Developer Program | 手表应用/数据字段、FIT 记录、传感器/GPS、路线或训练计划推送、活动数据读取 | 不应假设所有设备都支持同等 API、地图和后台能力 | P1 评估，优先于 Suunto/COROS |
-| Suunto | Suunto Partner Program、Cloud API、SuuntoPlus Sports Apps | 读取 Suunto 活动数据、导入路线、上传 FIT、做 SuuntoPlus 指南或运动小应用 | 不应假设有 Apple Watch 式完整自由 App 平台 | P2 评估，适合做伙伴生态接入 |
-| COROS | Partner/API application、第三方数据同步、路线同步伙伴 | 运动数据同步、路线同步、训练平台集成 | 不应假设有公开手表 App SDK | P2/P3，等明确合作权限后再投入 |
+| Garmin | Connect IQ SDK、Connect IQ Store、Garmin Connect Developer Program、Courses/Training/Activity API | 手表 Device App / Data Field、FIT 扩展记录、GPS/传感器读取、路线或训练计划推送、活动文件读取 | 不应假设所有设备都支持同等 API、地图 UI、存储、后台和原生导航集成能力 | P1+ 重点验证，专业户外用户第二增长平台 |
+| Suunto | Suunto Partner Program、Cloud API、SuuntoPlus Sports Apps / Guides、第三方路线同步 | 读取活动/FIT 数据、同步路线或训练指导、开发轻量腕上运动增强功能 | 不应假设有 Apple Watch 式完整自由 App 平台或可替换原生运动页 | P2 评估，适合做伙伴生态和 SuuntoPlus 小应用验证 |
+| COROS | Partner/API application、第三方数据同步、路线同步伙伴、原生路线导航 | 运动数据同步、路线同步、训练平台集成、借助 COROS 原生导航执行路线 | 不应假设有公开手表 App SDK 或可替换原生运动页 | P2/P3，先验证合作权限和路线同步范围 |
 
 ### Garmin 细化判断
 
-Garmin 是专业户外表里最值得进一步评估的平台。Connect IQ 支持 Data Fields、Device Apps、Widgets、Watch Faces 等形态；官方能力覆盖 FIT 记录、GPS/传感器数据、ANT+/BLE、与手机或网络通信等。Garmin Connect Developer Program 还提供 Activity、Training、Courses 等云端 API，可读取活动数据或向兼容设备推送训练和路线。
+2026-06-08 复查：Garmin 是专业户外表里最值得优先验证的平台。Connect IQ SDK 最新官方页面显示当前版本为 9.1.0，支持 Data Fields、Device Apps、Widgets、Watch Faces、Audio Content Provider 等形态；Device Apps 可使用 GPS/传感器数据、ANT+/BLE、与手机或互联网通信，并记录 FIT；Data Fields 可叠加到设备已有运动页面，并通过 FitContributor 把自定义字段写入活动 FIT 文件。Connect IQ API 文档还包含 ActivityRecording、Activity、Position、Communications、Sensor、WatchUi、PersistedLocations 等模块，说明 Garmin 具备比 Suunto/COROS 更完整的腕上第三方开发路径。
+
+Garmin Connect Developer Program 是另一条云端接入路径。官方说明该项目包含 Health API、Activity API、Training API、Courses API、Women’s Health API。其中 Activity API 可在用户授权并同步设备后读取完整活动数据，并提供 FIT、GPX、TCX 文件；Training API 可发布结构化 workouts 和 training plans 到 Garmin Connect 日历，再同步到兼容设备；Courses API 可发布 courses 和 course points 到 Garmin Connect，用户可在兼容手表或骑行码表的标准 Courses 菜单中跟随路线。官方同时说明这些 Garmin Connect APIs 是 cloud-to-cloud 集成；如果需要移动 App 与 Garmin wearables 的实时直连，需要另看 Garmin Health SDKs，不应把云端 API 误解成实时手表控制通道。
 
 对本项目而言，Garmin 的现实产品形态可能不是“复制 Apple Watch App”，而是：
 
-1. 在手机/云端生成路线或训练计划，推送到 Garmin 设备。
-2. 通过 Garmin Connect API 获取用户授权后的活动、FIT/GPX/TCX 数据。
-3. 用 Connect IQ 做轻量数据字段、导航辅助、提醒或特定运动小工具。
-4. 把 Garmin 作为专业户外用户的第二增长平台，而不是首发 MVP 平台。
+1. 在手机/云端生成徒步 course、course points、训练计划或补给/风险点指导，借 Garmin Courses/Training API 推送到 Garmin Connect，再由用户同步到兼容设备。
+2. 通过 Activity API 获取用户授权后的活动详情和 FIT/GPX/TCX 文件，用于运动后复盘、路线沉淀和数据分析。
+3. 用 Connect IQ Data Field 做叠加在原生 Hiking/Walking/Trail Run 等运动模式上的轻量实时能力，例如偏航距离、补给倒计时、检查点 ETA、风险点提醒、自定义 FIT 字段记录。
+4. 用 Connect IQ Device App 验证更完整的腕上路线辅助或会话记录，但必须先确认目标设备 API Level、内存、地图/图形能力、定位权限、ActivityRecording 行为和 Connect IQ Store 上架要求。
+5. 把 Garmin 作为专业户外用户的第二增长平台，并优先验证 “Courses API + Activity API + 轻量 Data Field” 组合，而不是一开始做完整自研 Garmin 地图 App。
+
+Garmin 的关键限制也要写清楚：
+
+1. 设备差异大。Fenix/Epix/Enduro/Forerunner/Instinct/Edge 等产品的屏幕、地图、存储、API Level、运动模式和 Connect IQ 限制不同，不能用单一 Garmin 结论覆盖所有型号。
+2. Courses/Training API 依赖用户授权、Garmin Connect 和设备同步链路，不等于手机即时向手表推送任意资源。
+3. Connect IQ 可开发腕上功能，但未必能接管 Garmin 原生地图、原生导航和所有系统运动算法；应优先和原生运动/路线生态组合。
+4. Connect IQ Data Field 更适合叠加信息和记录自定义字段；Device App 更自由但上架、体验一致性、电量和长时间稳定性风险更高。
+5. Activity API 是运动后数据路径，数据可用性取决于用户同步设备到 Garmin Connect。
+
+建议下一轮 Garmin 验证拆成两个并行小实验：
+
+1. 云端 API 实验：申请 Garmin Connect Developer Program，验证 Courses API 是否能写入徒步 course/course points，Activity API 是否能读取活动文件，Training API 是否适合补给/风险点或结构化训练。
+2. Connect IQ 实验：选 1-2 个目标设备系列，做一个 Data Field 原型，读取当前活动、定位、海拔/心率等数据，显示路线相关提示，并通过 FitContributor 写入自定义 FIT 字段。
 
 ### Suunto 细化判断
 
-Suunto 的接入路径偏伙伴生态。API Zone 说明需要加入 Suunto Partner Program 才能获得 API 访问；API 包含 workout、route、guide、upload、daily activity、247 data 等方向。SuuntoPlus Sports Apps 允许开发者用 SuuntoPlus Editor 在本地开发和测试运动小应用，最终通过 ApiZone 提交并由 Suunto 审核发布。
+2026-06-08 复查：Suunto 的接入路径偏伙伴生态，但比纯数据 API 更进一步。API Zone 说明需要加入 Suunto Partner Program 才能获得 API 访问；API 面向通过 Suunto App 连接消费者，重点是读取用户授权后的 workout/FIT 活动数据。SuuntoPlus 页面和 API Zone 说明，SuuntoPlus Sports Apps 是运行在 Suunto 手表运动中的轻量、可定制功能，可用于传感器驱动的数据叠加、计算、计时器或实时指导；开发者可安装 SuuntoPlus Editor，在本地用自己的手表和电脑开发测试，发布则需要通过 ApiZone 提交并由 Suunto 审核。SuuntoPlus Guides 则更适合训练计划、比赛补给、爬升段落或路线相关实时指导内容。
+
+路线能力上，Suunto App 支持规划路线、管理路线库，并与 Strava、Komoot 等伙伴服务同步路线；Komoot 路线可带转向提示同步到手表，Strava 路线也可进入 Suunto App 路线库后选择同步到手表。官方材料还显示 Suunto App 连接 200+ 伙伴服务，但具体 API 权限、路线写入、Guide 下发、发布范围和中国区可用性需要逐项申请和实机验证。
 
 对本项目而言，Suunto 更适合做：
 
 1. 路线、训练计划或 SuuntoPlus Guide 下发。
 2. 运动后数据读取和分析。
-3. 与 Suunto 既有运动模式叠加轻量实时功能。
+3. 用 SuuntoPlus Sports App 做轻量腕上实时功能，例如补给提醒、坡度/爬升段提示、检查点倒计时或安全信息页。
+4. 借助 Suunto 原生运动、导航和路线库执行徒步，而不是复制完整自有地图和会话系统。
 
-不建议在没有伙伴权限和实机验证前，把 Suunto 规划为完整自有手表 App 平台。
+不建议在没有伙伴权限和实机验证前，把 Suunto 规划为完整自有手表 App 平台。下一步验证重点是：是否能获得 Partner/API 权限；是否能写入路线、Guide 或训练计划；SuuntoPlus Sports App 可访问哪些实时数据字段；目标机型是否支持 SuuntoPlus；审核发布周期和区域可用性是否满足产品节奏。
 
 ### COROS 细化判断
 
-COROS 官方列出了第三方 App 数据同步和 Partner with COROS 路径，也明确开发者可提交 API Application。COROS 自身设备具备丰富的户外运动能力，例如路线导航、偏航提醒、活动提醒、多日活动的 Resume Later 等，但当前未找到公开、完整的手表端第三方 App SDK。
+2026-06-08 复查：COROS 官方列出了第三方 App 数据同步和 Partner with COROS 路径，也明确开发者可提交 API Application。COROS Partner 页面和帮助中心显示，COROS 已支持 Strava、Komoot、Ride with GPS、Wikiloc 等路线或活动同步伙伴；路线可以从第三方、GPX 文件或 COROS App 导入后同步到设备，部分设备还支持运动进行中从手机同步路线到手表。COROS 自身设备具备丰富的户外运动能力，例如路线导航、偏航提醒、转向提示、海拔信息和运动中开启/结束导航等，但当前仍未找到公开、完整的手表端第三方 App SDK。
 
 对本项目而言，COROS 应按“合作/API 数据接入”处理：
 
 1. 优先确认是否能拿到 API 权限。
-2. 验证是否能读取活动、同步路线或训练计划。
-3. 暂不把 COROS 纳入自研手表端 MVP。
+2. 验证是否能读取活动、同步路线、同步训练计划，以及路线同步是否可覆盖徒步场景。
+3. 如果可合作，产品形态优先是“手机/云端生成或管理路线，推送到 COROS 原生路线库，运动后读取活动数据”，而不是开发自有 COROS 手表 App。
+4. 暂不把 COROS 纳入自研手表端 MVP。
 
 ### 专业户外表参考资料
 
 - Garmin Connect IQ SDK: https://developer.garmin.com/connect-iq/overview/
+- Garmin Connect IQ Getting Started: https://developer.garmin.com/connect-iq/connect-iq-basics/getting-started/
+- Garmin Connect IQ App Types: https://developer.garmin.com/connect-iq/connect-iq-basics/app-types/
 - Garmin Connect IQ API Docs: https://developer.garmin.com/connect-iq/api-docs/
-- Garmin Connect Developer Program: https://developerportal.garmin.com/developer-programs/connect-developer-api
+- Garmin Connect Developer Program: https://developer.garmin.com/gc-developer-program/overview/
 - Garmin Activity API: https://developer.garmin.com/gc-developer-program/activity-api/
+- Garmin Courses API: https://developer.garmin.com/gc-developer-program/courses-api/
+- Garmin Training API: https://developer.garmin.com/gc-developer-program/training-api/
+- Garmin Health SDKs: https://developer.garmin.com/health-sdk/overview/
 - Suunto API Zone: https://apizone.suunto.com/
 - Suunto API list: https://apizone.suunto.com/apis
 - SuuntoPlus Sports Apps: https://apizone.suunto.com/suuntoplus
+- SuuntoPlus product page: https://www.suunto.com/suuntoplus/
+- Suunto App: https://www.suunto.com/en-us/suunto-app/suunto-app-2022/
+- Suunto Strava routes: https://www.suunto.com/en-ca/Support/faq-articles/strava/strava-routes/
+- Suunto Komoot partner: https://www.suunto.com/partners/komoot/
 - COROS Partners: https://coros.com/partners
 - COROS Supported 3rd Party Apps: https://support.coros.com/hc/en-us/articles/360040256531-Supported-3rd-Party-Apps
+- COROS Downloading and Using Routes: https://support.coros.com/hc/en-us/articles/24181489692436-Downloading-and-Using-Routes
+- COROS Using Navigation Features: https://support.coros.com/hc/en-us/articles/360039841072-Using-Navigation-Features
+- COROS Route Syncing to Watch During Activity: https://support.coros.com/hc/en-us/articles/6504037499284-Route-Syncing-to-Watch-During-Activity
 
 ## 离线地图方案补充评估
 
@@ -325,7 +390,10 @@ COROS 官方列出了第三方 App 数据同步和 Partner with COROS 路径，�
 | Apple Watch | HKWorkoutSession 后台记录、Core Location、心率、路线下发、偏航提醒、结束后同步 | 1 小时连续记录无丢失；断开手机后仍能继续；运动结束可回传完整轨迹 |
 | Wear OS | Health Services ExerciseClient、GPS/心率/海拔、Data Layer 资源下发、地图显示 | Android 手机下发路线稳定；手表端能独立完成一次户外记录 |
 | 华为 | Wear Engine 消息/文件、Health Kit 权限、WATCH / GT 目标机型安装和上架路径 | 至少 `WATCH 5/4` 与 `WATCH GT 5/6` 两条主线验证通过，明确地区、系统和手机生态限制 |
-| Garmin | Connect IQ 示例、Courses/Training API、Activity API、目标设备 API 级别 | 能推送路线或训练；能获取活动文件；确认是否值得做手表端轻量功能 |
+| 小米 | Xiaomi Wear OS 目标机型、非 Wear OS 国内机型、小米运动健康 / Mi Fitness 数据和应用分发路径 | Wear OS 机型能跑通通用 Android + Wear OS Demo；非 Wear OS 机型明确是否存在公开 SDK 和发布路径 |
+| OPPO | OPPO / OnePlus Wear OS 目标机型、非 Wear OS 国内机型、OPPO 健康数据和应用分发路径 | Wear OS 机型能跑通通用 Android + Wear OS Demo；非 Wear OS 机型明确是否存在公开 SDK 和发布路径 |
+| vivo | BlueOS SDK、vivo WATCH 目标机型、定位/健康/运动权限、应用分发 | 明确 BlueOS 是否支持手表第三方户外 App；能否访问徒步所需实时数据 |
+| Garmin | Courses/Training/Activity API、Connect IQ Data Field 示例、目标设备 API Level 和 Connect IQ Store 流程 | 能推送 course/course points 或训练；能获取活动 FIT/GPX/TCX；能在目标设备上稳定运行轻量 Data Field |
 | Suunto | Partner/API 申请、Route/Guide/Workout API、SuuntoPlus Editor | 明确审批路径；能本地测试 SuuntoPlus Sports App 或 API demo |
 | COROS | API Application、路线/活动同步、合作要求 | 明确是否可获得权限；不可获得前不进入研发排期 |
 
@@ -337,8 +405,11 @@ COROS 官方列出了第三方 App 数据同步和 Partner with COROS 路径，�
 | 2 | Garmin/佳明 | 徒步和专业户外用户价值高，续航、GPS、路线和户外能力强，Connect IQ 和云端 API 都值得评估 |
 | 3 | Wear OS | Android 用户侧关键平台，具备健康、通信、地图能力，但需机型和续航验证 |
 | 4 | 华为 | 中国及 HarmonyOS 生态重要，但机型、地区、上架和权限差异需要先收敛 |
-| 5 | Suunto | 适合伙伴生态、路线/指南/活动数据接入，不适合首发完整 App |
-| 6 | COROS | 设备户外能力强，但第三方开放路径更偏 API/合作，研发不确定性高 |
+| 5 | 小米自研系统手表 | 中国 Android 手机生态价值高，但需先确认 SDK、应用分发、健康数据和手表端权限 |
+| 6 | OPPO 自研系统手表 | 中国 Android 手机生态价值高，但需先确认 SDK、应用分发、健康数据和手表端权限 |
+| 7 | vivo / BlueOS 手表 | 中国 Android 手机生态价值高，但需先确认 BlueOS SDK、应用分发、健康数据和手表端权限 |
+| 8 | Suunto | 适合伙伴生态、路线/指南/活动数据接入，不适合首发完整 App |
+| 9 | COROS | 设备户外能力强，但第三方开放路径更偏 API/合作，研发不确定性高 |
 
 ## 建议的产品架构
 
@@ -387,10 +458,16 @@ COROS 官方列出了第三方 App 数据同步和 Partner with COROS 路径，�
 | P0 | 华为 WATCH / GT 目标机型清单 | 明确优先验证 WATCH 数字系列和 WATCH GT 系列，而不是泛称支持华为 |
 | P0 | 手机-手表组合矩阵 | 明确 iPhone/Android/华为手机与 Apple Watch/Wear OS/华为手表的支持边界 |
 | P1 | Wear OS 实机验证 | 验证 Health Services、Data Layer、地图和电量表现 |
-| P1 | Garmin Connect IQ/API 验证 | 验证徒步路线推送、活动数据读取、轻量手表导航/提醒能力 |
+| P1 | Garmin Connect IQ/API 验证 | 验证 Courses API 路线/点位下发、Activity API 活动文件读取、Connect IQ Data Field 轻量导航/提醒能力 |
 | P1 | 华为 Wear Engine Demo 验证 | 验证手机下发路线、手表回传状态 |
 | P1 | 华为 Health Kit 数据权限验证 | 确认运动数据读取、写入和授权流程 |
 | P1 | 离线地图方案评估 | 确认手表端瓦片大小、缓存策略和渲染性能 |
+| P2 | Xiaomi Wear OS 机型验证 | 确认 Xiaomi Wear OS 手表是否可复用 Android 通用实现 |
+| P2 | OPPO / OnePlus Wear OS 机型验证 | 确认 OPPO / OnePlus Wear OS 手表是否可复用 Android 通用实现 |
+| P2 | vivo BlueOS 资料与 SDK 验证 | 确认是否能开发手表端第三方户外功能 |
+| P3 | 小米非 Wear OS 机型合作验证 | 确认是否存在公开 SDK、应用商店和健康数据 API |
+| P3 | OPPO 非 Wear OS 机型合作验证 | 确认是否存在公开 SDK、应用商店和健康数据 API |
+| P3 | vivo 非 BlueOS 或非公开 SDK 机型合作验证 | 确认是否存在公开 SDK、应用商店和健康数据 API |
 | P2 | Suunto Partner/SuuntoPlus 验证 | 评估路线、指南、活动数据和运动小应用接入 |
 | P2 | COROS API 合作验证 | 确认是否可获得 API 权限及路线/活动同步范围 |
 
