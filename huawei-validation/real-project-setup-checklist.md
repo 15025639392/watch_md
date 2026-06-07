@@ -112,6 +112,7 @@ bash huawei-validation/scripts/check-h0-readiness.sh
 4. `hdc list targets` 是否能返回。
 5. 真实工程导入包是否能生成。
 6. 本地 WATCH / GT payload 流程是否仍通过。
+7. 本地成功、断连重试、低电量和非法输入拒绝场景是否能生成 `summary.json`、`events.jsonl` 和 `report.md`。
 
 ## 创建 GT 真实工程
 

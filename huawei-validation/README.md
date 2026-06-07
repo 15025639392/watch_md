@@ -59,6 +59,33 @@ node huawei-validation/scripts/run-local-flow-demo.mjs
 
 它会读取 `shared/route-payload.sample.json` 作为 WATCH 数字系列完整路线 payload，读取 `shared/gt-navigation-payload.sample.json` 作为 GT 系列轻量导航 payload，并输出两条线的 ACK 与状态回传。这个脚本用于验证 payload 和流程，不代表真实 Wear Engine 通信已经接通。
 
+## 本地场景 Demo
+
+无公司账号、无真机、无 Wear Engine 接入时，还可以先跑可重复的场景模拟：
+
+```sh
+node huawei-validation/scripts/run-local-scenario-demo.mjs
+```
+
+当前场景覆盖：
+
+| 场景 | 用途 |
+| --- | --- |
+| `happy-path` | WATCH 完整路线与 GT 轻量导航均下发成功 |
+| `watch-disconnected-retry` | WATCH 首次断连、重连后重试成功 |
+| `gt-low-battery` | GT 可接收导航，但状态回传低电量警告 |
+| `invalid-watch-payload` | WATCH payload 不合法时在传输前拒绝 |
+
+脚本会输出：
+
+| 文件 | 用途 |
+| --- | --- |
+| `generated/local-simulation/summary.json` | 场景数量、事件数量、warning / retry / rejected 摘要 |
+| `generated/local-simulation/events.jsonl` | 每一步事件日志，后续真机 Wear Engine 验证可沿用同类记录格式 |
+| `generated/local-simulation/report.md` | 可读验证报告，便于归档和与真机结果对照 |
+
+这些文件证明的是本地协议和流程，不代表真实 Wear Engine 已经可用。
+
 ## 真实工程导入包
 
 创建 DevEco Studio / Android Studio 真实工程前，可以先生成导入包：

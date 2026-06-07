@@ -137,9 +137,10 @@ function renderManifest(copied) {
   lines.push('')
   lines.push('```sh')
   lines.push('node huawei-validation/scripts/run-local-flow-demo.mjs')
+  lines.push('node huawei-validation/scripts/run-local-scenario-demo.mjs')
   lines.push('```')
   lines.push('')
-  lines.push('The real projects should preserve the same payload shapes until Wear Engine true-device ACKs are captured.')
+  lines.push('The scenario demo writes `huawei-validation/generated/local-simulation/summary.json` and `events.jsonl`; keep those event shapes stable until Wear Engine true-device ACKs are captured.')
   lines.push('')
 
   return `${lines.join('\n')}\n`

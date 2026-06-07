@@ -144,6 +144,17 @@ fi
 rm -f /tmp/huawei-local-flow.log
 info ''
 
+info 'Local scenario simulation'
+if node "$ROOT_DIR/huawei-validation/scripts/run-local-scenario-demo.mjs" >/tmp/huawei-local-scenario.log 2>&1; then
+  ok 'Local Huawei scenario demo completed'
+  tail -1 /tmp/huawei-local-scenario.log | sed 's/^/  /'
+else
+  fail 'Local Huawei scenario demo failed'
+  sed -n '1,60p' /tmp/huawei-local-scenario.log | sed 's/^/  /'
+fi
+rm -f /tmp/huawei-local-scenario.log
+info ''
+
 if [ "$failures" -gt 0 ]; then
   fail "$failures required check(s) failed; do not start H0 true-device validation yet."
   exit "$failures"
