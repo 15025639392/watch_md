@@ -70,7 +70,8 @@ iPhone 路线列表 / GPX 导入
 4. 如果 iPhone 定位卡已经产生当前位置，地图上会显示接近 iOS 地图蓝点风格的定位标记：半透明精度圈、蓝色圆点和方向楔形，并随定位点和朝向更新。
 5. 底部面板展示同步状态、路线名称、距离、爬升、预计用时、起终点识别、路线点数和转向点数。
 6. “Watch 出发检查”显示路线同步、连接状态、定位 / 健康权限三项。
-7. 主按钮根据状态显示“同步到 Watch”“重新同步到 Watch”或“重试同步”。
+7. 从远端或本地列表进入时，主按钮根据状态显示“同步到 Watch”“重新同步到 Watch”或“重试同步”。
+8. 从“已同步”列表进入时，详情页显示“Watch 已就绪”，不再显示“未同步”或“同步到 Watch”操作。
 
 语义边界：
 
@@ -102,16 +103,19 @@ Watch 中枢用于查看 Watch 会话回传，不是路线管理页。
 2. iPhone 收齐摘要、最终轨迹和最终事件后会把会话保存到 `ReceivedSessions`，外层记录和摘要内的 `syncStatus` 都应显示为 `synced`。
 3. iPhone UI 中“Watch 已连接”只表示 `isReachable == true` 时可实时通信；Watch 退到后台或未实时可达时，当前实现显示“Watch 后台同步可用”，并通过 `transferUserInfo` 可靠队列同步，不能误写成路线或会话无法同步。
 4. Watch 行进中会发送 `liveTrackSnapshot` 轻量快照，包含当前位置、最近轨迹点、计划路线点、HealthKit 实时指标、路线匹配 / 偏航状态、回路线方位角和最近路线投影点，用于 iPhone Watch 中枢实时预览；它不替代结束后的 `trackChunk` / `eventChunk` / `sessionSummary` 完整归档回传。
-5. `liveTrackSnapshot` 在 Watch 后台或非实时可达时允许进入 `transferUserInfo` 队列，更新频率受系统调度影响，不能承诺严格实时。
-6. 断连、后台、锁屏、重连和大体量 chunk 的真实设备表现仍需 iPhone + Apple Watch 真机验证。
+5. Watch 开始、暂停、继续和结束这些状态边界会主动发送 `liveTrackSnapshot`，让 iPhone Watch 中枢和实时地图同步显示 Watch 当前记录状态；结束快照发送后才进入完整会话回传。
+6. iPhone 接收 `liveTrackSnapshot` 时按 `updatedAt` 接受较新的状态，避免上一条记录结束后的可靠队列消息晚到并覆盖下一条新记录的实时状态。
+7. `liveTrackSnapshot` 在 Watch 后台或非实时可达时允许进入 `transferUserInfo` 队列，更新频率受系统调度影响，不能承诺严格实时。
+8. 断连、后台、锁屏、重连和大体量 chunk 的真实设备表现仍需 iPhone + Apple Watch 真机验证。
 
 回传详情显示：
 
 1. 同步状态。
 2. 轨迹点、事件、缺口、距离、时长和偏航数量。
 3. 轨迹、事件、摘要、状态的完整性。
-4. 缺失 sequence 范围。
-5. 同步完成后显示“查看复盘”。
+4. 如果 iPhone 本地已保存 Watch 回传的 evidence JSONL，显示“分享清洗证据”，使用 iOS 系统分享面板导出该文件。
+5. 缺失 sequence 范围。
+6. 同步完成后显示“查看复盘”。
 
 ### iPhone 复盘
 
@@ -238,8 +242,9 @@ Watch 中枢用于查看 Watch 会话回传，不是路线管理页。
 1. 结束时停止定位和 workout。
 2. 如果会话处于 paused，先恢复再结束，以便 recorder 完成状态机。
 3. 生成 `SessionSummary`。
-4. 读取本地会话快照并触发上传计划。
-5. 会话结束后 `session` 置空，地图保留摘要和轨迹状态。
+4. 读取本地会话快照，先发送 finished 状态的 `liveTrackSnapshot`。
+5. 触发上传计划，回传 status / track chunk / event chunk / summary / evidence。
+6. 会话结束后 `session` 置空，地图保留摘要和轨迹状态。
 
 ## 偏航与定位当前语义
 

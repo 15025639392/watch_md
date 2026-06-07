@@ -251,6 +251,7 @@ final class WatchRouteCardViewModel: ObservableObject {
             workoutController.pause()
             try await recorder.pause()
             session = await recorder.currentSession
+            await sendLiveSnapshotIfNeeded(force: true)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -264,6 +265,7 @@ final class WatchRouteCardViewModel: ObservableObject {
             locationSampler.start()
             barometerSampler.start()
             motionSampler.start()
+            await sendLiveSnapshotIfNeeded(force: true)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -280,6 +282,11 @@ final class WatchRouteCardViewModel: ObservableObject {
             }
             summary = try await recorder.finish()
             let snapshot = try await recorder.storedSnapshot()
+            trackPoints = snapshot.trackPoints
+            trackPointCount = snapshot.trackPoints.count
+            currentCoordinate = snapshot.trackPoints.last?.mapCoordinate
+            session = snapshot.session
+            await sendLiveSnapshotIfNeeded(force: true)
             await uploadService.upload(snapshot)
             session = nil
             routeMatch = .empty
@@ -330,7 +337,8 @@ final class WatchRouteCardViewModel: ObservableObject {
     }
 
     private func sendLiveSnapshotIfNeeded(force: Bool = false) async {
-        guard let session, session.status == .active || session.status == .paused else { return }
+        guard let session else { return }
+        guard force || session.status == .active || session.status == .paused else { return }
         let now = Date()
         let elapsed = lastLiveSnapshotSentAt.map { now.timeIntervalSince($0) } ?? .infinity
         let hasNewPoints = trackPointCount > lastLiveSnapshotPointCount
