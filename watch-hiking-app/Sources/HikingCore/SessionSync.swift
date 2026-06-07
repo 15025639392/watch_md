@@ -125,9 +125,63 @@ public struct EventChunk: Codable, Equatable, Sendable {
     }
 }
 
+public struct EvidenceManifest: Codable, Equatable, Sendable {
+    public var sessionId: String
+    public var fileName: String
+    public var byteCount: Int
+    public var lineCount: Int
+    public var evidenceChecksum: String
+    public var strategyVersion: String
+
+    public init(
+        sessionId: String,
+        fileName: String,
+        byteCount: Int,
+        lineCount: Int,
+        evidenceChecksum: String,
+        strategyVersion: String = EvidenceLogger.strategyVersion
+    ) {
+        self.sessionId = sessionId
+        self.fileName = fileName
+        self.byteCount = byteCount
+        self.lineCount = lineCount
+        self.evidenceChecksum = evidenceChecksum
+        self.strategyVersion = strategyVersion
+    }
+}
+
+public struct EvidenceChunk: Codable, Equatable, Sendable {
+    public var sessionId: String
+    public var chunkId: String
+    public var sequence: Int
+    public var offset: Int
+    public var isFinal: Bool
+    public var data: Data
+    public var chunkChecksum: String
+
+    public init(
+        sessionId: String,
+        chunkId: String = UUID().uuidString,
+        sequence: Int,
+        offset: Int,
+        isFinal: Bool,
+        data: Data,
+        chunkChecksum: String
+    ) {
+        self.sessionId = sessionId
+        self.chunkId = chunkId
+        self.sequence = sequence
+        self.offset = offset
+        self.isFinal = isFinal
+        self.data = data
+        self.chunkChecksum = chunkChecksum
+    }
+}
+
 public enum SessionSyncError: Error, Equatable {
     case missingSummary
     case trackChecksumMismatch
+    case evidenceChecksumMismatch
     case trackChunkSequenceMismatch
     case eventChunkSessionMismatch
     case unexpectedAck(SyncAck)
@@ -244,6 +298,64 @@ public enum SessionSyncCodec {
         }
     }
 
+    public static func makeEvidenceManifestEnvelope(
+        for storedSession: StoredHikingSession,
+        evidenceData: Data
+    ) throws -> SyncEnvelope<EvidenceManifest>? {
+        guard !evidenceData.isEmpty else { return nil }
+        let sessionId = storedSession.session.sessionId
+        let manifest = EvidenceManifest(
+            sessionId: sessionId,
+            fileName: "\(sessionId).evidence.jsonl",
+            byteCount: evidenceData.count,
+            lineCount: evidenceLineCount(evidenceData),
+            evidenceChecksum: RouteSyncCodec.checksum(data: evidenceData)
+        )
+        let data = try RouteSyncCodec.encoder.encode(manifest)
+        return SyncEnvelope(
+            sender: .watch,
+            kind: .evidenceManifest,
+            entityId: sessionId,
+            entityVersion: storedSession.session.routeVersion,
+            payloadChecksum: RouteSyncCodec.checksum(data: data),
+            payload: manifest
+        )
+    }
+
+    public static func makeEvidenceChunkEnvelopes(
+        for storedSession: StoredHikingSession,
+        evidenceData: Data,
+        chunkSize: Int = 32_000
+    ) throws -> [SyncEnvelope<EvidenceChunk>] {
+        guard !evidenceData.isEmpty else { return [] }
+        let size = max(1, chunkSize)
+        let chunks = stride(from: 0, to: evidenceData.count, by: size).map { offset -> (offset: Int, data: Data) in
+            let end = Swift.min(offset + size, evidenceData.count)
+            return (offset, evidenceData.subdata(in: offset..<end))
+        }
+        return try chunks.enumerated().map { index, chunkData in
+            let chunk = EvidenceChunk(
+                sessionId: storedSession.session.sessionId,
+                sequence: index,
+                offset: chunkData.offset,
+                isFinal: index == chunks.count - 1,
+                data: chunkData.data,
+                chunkChecksum: RouteSyncCodec.checksum(data: chunkData.data)
+            )
+            let data = try RouteSyncCodec.encoder.encode(chunk)
+            return SyncEnvelope(
+                sender: .watch,
+                kind: .evidenceChunk,
+                entityId: storedSession.session.sessionId,
+                entityVersion: storedSession.session.routeVersion,
+                sequence: index,
+                isFinal: chunk.isFinal,
+                payloadChecksum: RouteSyncCodec.checksum(data: data),
+                payload: chunk
+            )
+        }
+    }
+
     public static func makeSummaryEnvelope(for storedSession: StoredHikingSession) throws -> SyncEnvelope<SessionSummary> {
         guard let summary = storedSession.summary else { throw SessionSyncError.missingSummary }
         let data = try RouteSyncCodec.encoder.encode(summary)
@@ -262,15 +374,29 @@ public struct SessionUploadPlan: Equatable, Sendable {
     public var status: SyncEnvelope<SessionStatusPayload>
     public var trackChunks: [SyncEnvelope<TrackChunk>]
     public var eventChunks: [SyncEnvelope<EventChunk>]
+    public var evidenceManifest: SyncEnvelope<EvidenceManifest>?
+    public var evidenceChunks: [SyncEnvelope<EvidenceChunk>]
     public var summary: SyncEnvelope<SessionSummary>
 }
 
 public enum SessionUploadPlanner {
-    public static func makeUploadPlan(for storedSession: StoredHikingSession, trackChunkSize: Int = 50, eventChunkSize: Int = 20) throws -> SessionUploadPlan {
+    public static func makeUploadPlan(
+        for storedSession: StoredHikingSession,
+        trackChunkSize: Int = 50,
+        eventChunkSize: Int = 20,
+        evidenceData: Data? = nil,
+        evidenceChunkSize: Int = 32_000
+    ) throws -> SessionUploadPlan {
         SessionUploadPlan(
             status: try SessionSyncCodec.makeStatusEnvelope(for: storedSession),
             trackChunks: try SessionSyncCodec.makeTrackChunkEnvelopes(for: storedSession, chunkSize: trackChunkSize),
             eventChunks: try SessionSyncCodec.makeEventChunkEnvelopes(for: storedSession, chunkSize: eventChunkSize),
+            evidenceManifest: try evidenceData.flatMap {
+                try SessionSyncCodec.makeEvidenceManifestEnvelope(for: storedSession, evidenceData: $0)
+            },
+            evidenceChunks: try evidenceData.map {
+                try SessionSyncCodec.makeEvidenceChunkEnvelopes(for: storedSession, evidenceData: $0, chunkSize: evidenceChunkSize)
+            } ?? [],
             summary: try SessionSyncCodec.makeSummaryEnvelope(for: storedSession)
         )
     }
@@ -285,6 +411,10 @@ public actor PendingSessionUploadQueue {
         pendingEnvelopeIds.insert(plan.status.envelopeId)
         pendingEnvelopeIds.formUnion(plan.trackChunks.map(\.envelopeId))
         pendingEnvelopeIds.formUnion(plan.eventChunks.map(\.envelopeId))
+        if let evidenceManifest = plan.evidenceManifest {
+            pendingEnvelopeIds.insert(evidenceManifest.envelopeId)
+        }
+        pendingEnvelopeIds.formUnion(plan.evidenceChunks.map(\.envelopeId))
         pendingEnvelopeIds.insert(plan.summary.envelopeId)
     }
 
@@ -316,6 +446,8 @@ public struct ReceivedSessionRecord: Codable, Equatable, Sendable {
     public var trackPoints: [TrackPoint]
     public var events: [SessionEvent]
     public var syncStatus: SessionSyncStatus
+    public var evidenceByteCount: Int?
+    public var evidenceLineCount: Int?
 }
 
 public actor iPhoneSessionSyncReceiver {
@@ -324,6 +456,8 @@ public actor iPhoneSessionSyncReceiver {
     private var summaries: [String: SessionSummary] = [:]
     private var trackPointsBySession: [String: [Int: TrackPoint]] = [:]
     private var eventsBySession: [String: [String: SessionEvent]] = [:]
+    private var evidenceManifests: [String: EvidenceManifest] = [:]
+    private var evidenceChunksBySession: [String: [Int: EvidenceChunk]] = [:]
     private var finalTrackSequenceBySession: [String: Int] = [:]
     private var finalEventChunkSeen: Set<String> = []
 
@@ -391,6 +525,50 @@ public actor iPhoneSessionSyncReceiver {
         return try ackEnvelope(for: envelope, status: .ok, action: .eventChunkReceived)
     }
 
+    public func receiveEvidenceManifest(_ envelope: SyncEnvelope<EvidenceManifest>) throws -> SyncEnvelope<SyncAck> {
+        let key = envelopeKey(envelope)
+        if receivedEnvelopeKeys.contains(key) {
+            return try ackEnvelope(for: envelope, status: .alreadyReceived, action: .evidenceManifestReceived)
+        }
+        evidenceManifests[envelope.payload.sessionId] = envelope.payload
+        receivedEnvelopeKeys.insert(key)
+        return try ackEnvelope(for: envelope, status: .ok, action: .evidenceManifestReceived)
+    }
+
+    public func receiveEvidenceChunk(_ envelope: SyncEnvelope<EvidenceChunk>) throws -> SyncEnvelope<SyncAck> {
+        let key = envelopeKey(envelope)
+        if receivedEnvelopeKeys.contains(key) {
+            return try ackEnvelope(for: envelope, status: .alreadyReceived, action: .evidenceChunkReceived)
+        }
+        let chunk = envelope.payload
+        guard RouteSyncCodec.checksum(data: chunk.data) == chunk.chunkChecksum else {
+            throw SessionSyncError.evidenceChecksumMismatch
+        }
+        var chunks = evidenceChunksBySession[chunk.sessionId, default: [:]]
+        chunks[chunk.sequence] = chunk
+        evidenceChunksBySession[chunk.sessionId] = chunks
+        receivedEnvelopeKeys.insert(key)
+        return try ackEnvelope(for: envelope, status: .ok, action: .evidenceChunkReceived)
+    }
+
+    public func evidenceData(sessionId: String) throws -> Data? {
+        guard let manifest = evidenceManifests[sessionId] else { return nil }
+        let chunks = evidenceChunksBySession[sessionId, default: [:]]
+            .sorted { $0.key < $1.key }
+            .map(\.value)
+        guard !chunks.isEmpty else { return nil }
+        var data = Data()
+        for chunk in chunks {
+            guard chunk.offset == data.count else { return nil }
+            data.append(chunk.data)
+        }
+        guard data.count == manifest.byteCount,
+              RouteSyncCodec.checksum(data: data) == manifest.evidenceChecksum else {
+            throw SessionSyncError.evidenceChecksumMismatch
+        }
+        return data
+    }
+
     public func receiveSummary(_ envelope: SyncEnvelope<SessionSummary>) throws -> SyncEnvelope<SyncAck> {
         let summary = envelope.payload
         summaries[summary.sessionId] = summary
@@ -420,7 +598,9 @@ public actor iPhoneSessionSyncReceiver {
             summary: summary,
             trackPoints: points,
             events: events,
-            syncStatus: syncStatus
+            syncStatus: syncStatus,
+            evidenceByteCount: try? evidenceData(sessionId: sessionId)?.count,
+            evidenceLineCount: evidenceManifests[sessionId]?.lineCount
         )
     }
 
@@ -473,6 +653,13 @@ public actor iPhoneSessionSyncReceiver {
 
     private func envelopeKey<Payload>(_ envelope: SyncEnvelope<Payload>) -> String {
         "\(envelope.entityId)-\(envelope.kind.rawValue)-\(envelope.sequence ?? -1)-\(envelope.payloadChecksum)"
+    }
+}
+
+private func evidenceLineCount(_ data: Data) -> Int {
+    guard !data.isEmpty else { return 0 }
+    return data.reduce(0) { count, byte in
+        byte == 0x0A ? count + 1 : count
     }
 }
 

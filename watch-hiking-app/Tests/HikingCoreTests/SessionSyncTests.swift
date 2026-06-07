@@ -7,7 +7,18 @@ struct SessionSyncTests {
     @Test("Watch session upload reaches complete ACK on iPhone")
     func sessionUploadCompletes() async throws {
         let stored = try await finishedSession(pointCount: 5)
-        let plan = try SessionUploadPlanner.makeUploadPlan(for: stored, trackChunkSize: 2, eventChunkSize: 2)
+        let evidenceData = Data("""
+        {"event":"session_metadata","sessionId":"\(stored.session.sessionId)"}
+        {"event":"raw_location","sessionId":"\(stored.session.sessionId)"}
+
+        """.utf8)
+        let plan = try SessionUploadPlanner.makeUploadPlan(
+            for: stored,
+            trackChunkSize: 2,
+            eventChunkSize: 2,
+            evidenceData: evidenceData,
+            evidenceChunkSize: 40
+        )
         let receiver = iPhoneSessionSyncReceiver()
 
         let statusAck = try await receiver.receiveStatus(plan.status)
@@ -21,8 +32,16 @@ struct SessionSyncTests {
             let ack = try await receiver.receiveEventChunk(chunk)
             #expect(ack.payload.action == .eventChunkReceived)
         }
+        let evidenceManifest = try #require(plan.evidenceManifest)
+        let evidenceManifestAck = try await receiver.receiveEvidenceManifest(evidenceManifest)
+        #expect(evidenceManifestAck.payload.action == .evidenceManifestReceived)
+        for chunk in plan.evidenceChunks {
+            let ack = try await receiver.receiveEvidenceChunk(chunk)
+            #expect(ack.payload.action == .evidenceChunkReceived)
+        }
         let summaryAck = try await receiver.receiveSummary(plan.summary)
         let record = await receiver.record(sessionId: stored.session.sessionId)
+        let receivedEvidenceData = try await receiver.evidenceData(sessionId: stored.session.sessionId)
 
         #expect(summaryAck.payload.status == .ok)
         #expect(summaryAck.payload.action == .sessionComplete)
@@ -30,6 +49,17 @@ struct SessionSyncTests {
         #expect(record?.events.count == stored.events.count)
         #expect(record?.syncStatus == .synced)
         #expect(record?.summary?.syncStatus == .synced)
+        #expect(receivedEvidenceData == evidenceData)
+        #expect(plan.evidenceChunks.count > 1)
+    }
+
+    @Test("Session upload plan omits evidence when no evidence data exists")
+    func uploadPlanOmitsMissingEvidence() async throws {
+        let stored = try await finishedSession(pointCount: 1)
+        let plan = try SessionUploadPlanner.makeUploadPlan(for: stored)
+
+        #expect(plan.evidenceManifest == nil)
+        #expect(plan.evidenceChunks.isEmpty)
     }
 
     @Test("Duplicate track chunk is idempotent")

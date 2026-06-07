@@ -866,6 +866,7 @@ struct WatchSessionRecordRow: View {
                 HStack {
                     Text(record.completionText)
                     Text("\(record.events.count) 个事件")
+                    Text(record.evidenceText)
                     if !record.missingTrackRanges.isEmpty {
                         Text("\(record.missingTrackRanges.count) 段待补传")
                     }
@@ -913,6 +914,7 @@ struct WatchSessionSyncDetailView: View {
                         DetailStatusRow(title: "轨迹", value: record.completionText)
                         DetailStatusRow(title: "事件", value: "\(record.events.count) 个")
                         DetailStatusRow(title: "摘要", value: record.summary == nil ? "未收到" : "已收到")
+                        DetailStatusRow(title: "清洗证据", value: record.evidenceText)
                         DetailStatusRow(title: "状态", value: record.displayState.title)
                     }
                     .padding(12)
@@ -966,7 +968,7 @@ struct SessionSyncMetricGrid: View {
             MetricTile(title: "缺口", value: "\(record.missingTrackRanges.count)")
             MetricTile(title: "距离", value: Formatters.distance(record.summary?.distanceMeters ?? 0))
             MetricTile(title: "时长", value: record.durationText)
-            MetricTile(title: "偏航", value: "\(record.summary?.offRouteEventCount ?? 0)")
+            MetricTile(title: "证据", value: record.evidenceMetricText)
         }
     }
 }
@@ -2158,6 +2160,24 @@ private extension ReceivedSessionRecord {
             return "轨迹完整"
         }
         return "已收到 \(trackPoints.count)/\(expected) 个轨迹点"
+    }
+
+    var evidenceText: String {
+        guard let evidenceByteCount, evidenceByteCount > 0 else {
+            return "缺少清洗证据"
+        }
+        let lines = evidenceLineCount ?? 0
+        if lines > 0 {
+            return "\(lines) 条证据"
+        }
+        return ByteCountFormatter.string(fromByteCount: Int64(evidenceByteCount), countStyle: .file)
+    }
+
+    var evidenceMetricText: String {
+        guard let evidenceLineCount, evidenceLineCount > 0 else {
+            return "缺少"
+        }
+        return "\(evidenceLineCount)"
     }
 
     var missingTrackRanges: [SequenceRange] {

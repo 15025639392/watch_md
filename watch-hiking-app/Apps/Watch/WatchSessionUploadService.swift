@@ -179,7 +179,8 @@ private actor WatchSessionUploadEngine {
     func upload(_ storedSession: StoredHikingSession) async throws -> WatchUploadEngineResult {
         do {
             let syncingSession = try await sessionStore.updateSyncStatus(sessionId: storedSession.session.sessionId, syncStatus: .syncing)
-            let plan = try SessionUploadPlanner.makeUploadPlan(for: syncingSession)
+            let evidenceData = try? Data(contentsOf: await sessionStore.evidenceLogURL(sessionId: syncingSession.session.sessionId))
+            let plan = try SessionUploadPlanner.makeUploadPlan(for: syncingSession, evidenceData: evidenceData)
             activePlansBySessionId[syncingSession.session.sessionId] = plan
             await queue.enqueue(plan)
             try await pendingStore.save(WatchPendingUploadRecord(sessionId: syncingSession.session.sessionId, pendingEnvelopeIds: plan.envelopeIds))
@@ -198,7 +199,8 @@ private actor WatchSessionUploadEngine {
             var envelopeData: [Data] = []
 
             for storedSession in unfinishedSessions {
-                let plan = try SessionUploadPlanner.makeUploadPlan(for: storedSession)
+                let evidenceData = try? Data(contentsOf: await sessionStore.evidenceLogURL(sessionId: storedSession.session.sessionId))
+                let plan = try SessionUploadPlanner.makeUploadPlan(for: storedSession, evidenceData: evidenceData)
                 activePlansBySessionId[storedSession.session.sessionId] = plan
                 await queue.enqueue(plan)
                 try await pendingStore.save(WatchPendingUploadRecord(sessionId: storedSession.session.sessionId, pendingEnvelopeIds: plan.envelopeIds))
@@ -323,14 +325,27 @@ private actor WatchPendingUploadStore {
 
 private extension SessionUploadPlan {
     var envelopeIds: [String] {
-        [status.envelopeId] + trackChunks.map(\.envelopeId) + eventChunks.map(\.envelopeId) + [summary.envelopeId]
+        [status.envelopeId] +
+            trackChunks.map(\.envelopeId) +
+            eventChunks.map(\.envelopeId) +
+            evidenceManifest.map { [$0.envelopeId] }.get(or: []) +
+            evidenceChunks.map(\.envelopeId) +
+            [summary.envelopeId]
     }
 
     func encodedEnvelopeData() throws -> [Data] {
         try [RouteSyncCodec.encoder.encode(status)] +
             trackChunks.map { try RouteSyncCodec.encoder.encode($0) } +
             eventChunks.map { try RouteSyncCodec.encoder.encode($0) } +
+            evidenceManifest.map { [try RouteSyncCodec.encoder.encode($0)] }.get(or: []) +
+            evidenceChunks.map { try RouteSyncCodec.encoder.encode($0) } +
             [RouteSyncCodec.encoder.encode(summary)]
+    }
+}
+
+private extension Optional {
+    func get(or defaultValue: Wrapped) -> Wrapped {
+        self ?? defaultValue
     }
 }
 

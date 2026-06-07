@@ -13,6 +13,8 @@ public enum SyncEnvelopeKind: String, Codable, Sendable {
     case liveTrackSnapshot
     case trackChunk
     case eventChunk
+    case evidenceManifest
+    case evidenceChunk
     case sessionSummary
     case syncAck
 }
@@ -34,6 +36,8 @@ public enum SyncAckAction: String, Codable, Sendable {
     case sessionStatusReceived
     case trackChunkReceived
     case eventChunkReceived
+    case evidenceManifestReceived
+    case evidenceChunkReceived
     case sessionSummaryReceived
     case missingRangesRequested
     case routeBackfillRequested

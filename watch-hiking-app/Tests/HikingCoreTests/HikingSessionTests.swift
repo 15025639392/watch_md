@@ -130,6 +130,193 @@ struct HikingSessionTests {
         #expect(summary.offRouteEventCount == 1)
     }
 
+    @Test("Recorder writes low-power evidence JSONL beside the stored session")
+    func recorderWritesEvidenceJsonl() async throws {
+        let route = try await sampleInstalledRoute()
+        let store = try await makeStore()
+        let recorder = HikingSessionRecorder(store: store)
+        let start = Date(timeIntervalSince1970: 1_800_000_500)
+
+        let session = try await recorder.start(route: route, watchDeviceId: "watch-evidence-test", now: start)
+        _ = try await recorder.appendLocation(
+            latitude: 37.0,
+            longitude: -122.0,
+            elevationMeters: 10,
+            horizontalAccuracyMeters: 8,
+            verticalAccuracyMeters: 12,
+            speedMetersPerSecond: 1.2,
+            courseDegrees: 35,
+            timestamp: start.addingTimeInterval(5)
+        )
+        var barometer = EvidenceBarometerWindowAccumulator(windowSeconds: 6, minAltitudeStepMeters: 0.5)
+        _ = barometer.append(EvidenceBarometerSample(elapsedRealtimeNanos: 0, relativeAltitudeMeters: 0, pressureKpa: 95.4))
+        _ = barometer.append(EvidenceBarometerSample(elapsedRealtimeNanos: 3_000_000_000, relativeAltitudeMeters: 5, pressureKpa: 95.3))
+        let pendingBarometerWindow = barometer.append(
+            EvidenceBarometerSample(elapsedRealtimeNanos: 6_000_000_000, relativeAltitudeMeters: 0, pressureKpa: 95.4)
+        )
+        let barometerWindow = try #require(pendingBarometerWindow)
+        try await recorder.appendBarometerWindow(barometerWindow, timestamp: start.addingTimeInterval(6))
+        var motion = EvidenceDeviceMotionWindowAccumulator(windowSeconds: 2)
+        _ = motion.append(EvidenceDeviceMotionSample(
+            elapsedRealtimeNanos: 0,
+            userAccelerationXMps2: 0,
+            userAccelerationYMps2: 0,
+            userAccelerationZMps2: 0,
+            rotationRateXRadps: 0,
+            rotationRateYRadps: 0,
+            rotationRateZRadps: 0
+        ))
+        _ = motion.append(EvidenceDeviceMotionSample(
+            elapsedRealtimeNanos: 1_000_000_000,
+            userAccelerationXMps2: 3,
+            userAccelerationYMps2: 4,
+            userAccelerationZMps2: 0,
+            rotationRateXRadps: 0,
+            rotationRateYRadps: 0,
+            rotationRateZRadps: 2
+        ))
+        let pendingMotionWindow = motion.append(EvidenceDeviceMotionSample(
+            elapsedRealtimeNanos: 2_000_000_000,
+            userAccelerationXMps2: 0,
+            userAccelerationYMps2: 0,
+            userAccelerationZMps2: 0,
+            rotationRateXRadps: 0,
+            rotationRateYRadps: 0,
+            rotationRateZRadps: 0
+        ))
+        let motionWindow = try #require(pendingMotionWindow)
+        try await recorder.appendDeviceMotionWindow(motionWindow, timestamp: start.addingTimeInterval(7))
+        try await recorder.pause(now: start.addingTimeInterval(10))
+        _ = try await recorder.appendLocation(
+            latitude: 37.0001,
+            longitude: -122.0,
+            horizontalAccuracyMeters: 20,
+            timestamp: start.addingTimeInterval(15)
+        )
+        try await recorder.resume(now: start.addingTimeInterval(20))
+        _ = try await recorder.finish(now: start.addingTimeInterval(30))
+
+        let events = try await evidenceEvents(from: store.evidenceLogURL(sessionId: session.sessionId))
+        let eventNames = events.compactMap { $0["event"] as? String }
+
+        #expect(eventNames.contains("session_metadata"))
+        #expect(eventNames.filter { $0 == "sampling_policy" }.count == 4)
+        #expect(eventNames.filter { $0 == "raw_location" }.count == 2)
+        #expect(eventNames.filter { $0 == "barometer_window" }.count == 1)
+        #expect(eventNames.filter { $0 == "device_motion_window" }.count == 1)
+        #expect(eventNames.contains("session_event"))
+        #expect(events.first?["strategyVersion"] as? String == EvidenceLogger.strategyVersion)
+
+        let rawLocations = events.filter { $0["event"] as? String == "raw_location" }
+        #expect(rawLocations.first?["samplingEpochId"] as? Int == 1)
+        #expect(rawLocations.first?["accuracy"] as? Double == 8)
+        #expect(rawLocations.last?["isPaused"] as? Bool == true)
+        #expect(rawLocations.last?["samplingState"] as? String == "PAUSED")
+
+        let barometerWindows = events.filter { $0["event"] as? String == "barometer_window" }
+        #expect(barometerWindows.first?["windowAscentMeters"] as? Double == 5)
+        #expect(barometerWindows.first?["windowDescentMeters"] as? Double == 5)
+        #expect(barometerWindows.first?["deltaRelativeAltitudeMeters"] as? Double == 0)
+
+        let motionWindows = events.filter { $0["event"] as? String == "device_motion_window" }
+        #expect(motionWindows.first?["accelerometerDynamicMaxMps2"] as? Double == 5)
+        #expect(motionWindows.first?["gyroscopeMaxRadps"] as? Double == 2)
+        #expect(motionWindows.first?["sampleCount"] as? Int == 3)
+    }
+
+    @Test("Recovered recorder continues evidence sequence ids")
+    func recoveredRecorderContinuesEvidenceSequences() async throws {
+        let route = try await sampleInstalledRoute()
+        let store = try await makeStore()
+        let start = Date(timeIntervalSince1970: 1_800_000_600)
+
+        let firstRecorder = HikingSessionRecorder(store: store)
+        let session = try await firstRecorder.start(route: route, now: start)
+        _ = try await firstRecorder.appendLocation(
+            latitude: 37.0,
+            longitude: -122.0,
+            timestamp: start.addingTimeInterval(5)
+        )
+
+        let recoveredRecorder = HikingSessionRecorder(store: store)
+        let recovered = try await recoveredRecorder.recoverOpenSession()
+        #expect(recovered?.sessionId == session.sessionId)
+        _ = try await recoveredRecorder.appendLocation(
+            latitude: 37.0001,
+            longitude: -122.0,
+            timestamp: start.addingTimeInterval(10)
+        )
+
+        let events = try await evidenceEvents(from: store.evidenceLogURL(sessionId: session.sessionId))
+        let rawPointIds = events
+            .filter { $0["event"] as? String == "raw_location" }
+            .compactMap { $0["rawPointId"] as? Int }
+        let samplingEpochIds = events
+            .filter { $0["event"] as? String == "sampling_policy" }
+            .compactMap { $0["samplingEpochId"] as? Int }
+
+        #expect(rawPointIds == [1, 2])
+        #expect(samplingEpochIds == [1, 2])
+    }
+
+    @Test("Barometer windows accumulate ascent and descent inside the window")
+    func barometerWindowsAccumulateInsideWindow() throws {
+        var accumulator = EvidenceBarometerWindowAccumulator(windowSeconds: 6, minAltitudeStepMeters: 0.5)
+        #expect(accumulator.append(EvidenceBarometerSample(elapsedRealtimeNanos: 0, relativeAltitudeMeters: 100)) == nil)
+        #expect(accumulator.append(EvidenceBarometerSample(elapsedRealtimeNanos: 3_000_000_000, relativeAltitudeMeters: 105)) == nil)
+
+        let pendingWindow = accumulator.append(
+            EvidenceBarometerSample(elapsedRealtimeNanos: 6_000_000_000, relativeAltitudeMeters: 100)
+        )
+        let window = try #require(pendingWindow)
+
+        #expect(window.deltaRelativeAltitudeMeters == 0)
+        #expect(window.windowAscentMeters == 5)
+        #expect(window.windowDescentMeters == 5)
+        #expect(window.sessionBarometerAscentMeters == 5)
+        #expect(window.sessionBarometerDescentMeters == 5)
+        #expect(window.sampleCount == 3)
+    }
+
+    @Test("Device motion windows summarize dynamic acceleration and rotation")
+    func deviceMotionWindowsSummarizeMotion() throws {
+        var accumulator = EvidenceDeviceMotionWindowAccumulator(windowSeconds: 2)
+        #expect(accumulator.append(EvidenceDeviceMotionSample(
+            elapsedRealtimeNanos: 0,
+            userAccelerationXMps2: 0,
+            userAccelerationYMps2: 0,
+            userAccelerationZMps2: 0,
+            rotationRateXRadps: 0,
+            rotationRateYRadps: 0,
+            rotationRateZRadps: 0
+        )) == nil)
+        #expect(accumulator.append(EvidenceDeviceMotionSample(
+            elapsedRealtimeNanos: 1_000_000_000,
+            userAccelerationXMps2: 3,
+            userAccelerationYMps2: 4,
+            userAccelerationZMps2: 0,
+            rotationRateXRadps: 0,
+            rotationRateYRadps: 0,
+            rotationRateZRadps: 2
+        )) == nil)
+        let pendingWindow = accumulator.append(EvidenceDeviceMotionSample(
+            elapsedRealtimeNanos: 2_000_000_000,
+            userAccelerationXMps2: 0,
+            userAccelerationYMps2: 0,
+            userAccelerationZMps2: 0,
+            rotationRateXRadps: 0,
+            rotationRateYRadps: 0,
+            rotationRateZRadps: 0
+        ))
+        let window = try #require(pendingWindow)
+
+        #expect(window.accelerometerDynamicMaxMps2 == 5)
+        #expect(window.gyroscopeMaxRadps == 2)
+        #expect(abs(window.accelerometerDynamicRmsMps2 - sqrt(25.0 / 3.0)) < 0.000001)
+        #expect(abs(window.gyroscopeRmsRadps - sqrt(4.0 / 3.0)) < 0.000001)
+        #expect(window.sampleCount == 3)
+    }
+
     private func sampleInstalledRoute() async throws -> InstalledRoute {
         try await MockRemoteRouteClient.sample().fetchRouteDetail(remoteRouteId: "mock-ggr-001")
     }
@@ -142,5 +329,15 @@ struct HikingSessionTests {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("HikingSessionTests-\(UUID().uuidString)", isDirectory: true)
         return try HikingSessionStore(directoryURL: url)
+    }
+
+    private func evidenceEvents(from url: URL) throws -> [[String: Any]] {
+        let text = try String(contentsOf: url, encoding: .utf8)
+        return try text
+            .split(separator: "\n")
+            .map { line in
+                let data = Data(line.utf8)
+                return try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+            }
     }
 }

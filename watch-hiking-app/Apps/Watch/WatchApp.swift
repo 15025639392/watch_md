@@ -1,3 +1,4 @@
+import CoreMotion
 import CoreLocation
 @preconcurrency import HealthKit
 import MapKit
@@ -33,6 +34,8 @@ final class WatchRouteCardViewModel: ObservableObject {
     private let recorder: HikingSessionRecorder
     private let routeStore: RouteStore
     private let locationSampler = WatchLocationSampler()
+    private let barometerSampler = WatchBarometerSampler()
+    private let motionSampler = WatchMotionSampler()
     private let workoutController = WatchWorkoutController()
     private let uploadService: WatchSessionUploadService
     private var matcher: WatchRouteMatcher?
@@ -61,6 +64,18 @@ final class WatchRouteCardViewModel: ObservableObject {
         }
         locationSampler.onStatusChange = { [weak self] text in
             self?.locationStatusText = text
+        }
+        barometerSampler.onWindow = { [weak self] window in
+            guard let self else { return }
+            Task {
+                try? await self.recorder.appendBarometerWindow(window)
+            }
+        }
+        motionSampler.onWindow = { [weak self] window in
+            guard let self else { return }
+            Task {
+                try? await self.recorder.appendDeviceMotionWindow(window)
+            }
         }
         workoutController.onStatusChange = { [weak self] text in
             self?.workoutStatusText = text
@@ -143,6 +158,8 @@ final class WatchRouteCardViewModel: ObservableObject {
             if recovered.status == .active {
                 locationStatusText = currentCoordinate == nil ? "等待定位样本" : "定位恢复中"
                 locationSampler.start()
+                barometerSampler.start()
+                motionSampler.start()
             }
         } catch {
             errorMessage = "旧记录恢复失败，已使用预览路线"
@@ -218,6 +235,8 @@ final class WatchRouteCardViewModel: ObservableObject {
             session = try await recorder.start(route: route, watchDeviceId: "watch-simulator")
             await workoutController.start()
             locationSampler.start()
+            barometerSampler.start()
+            motionSampler.start()
             await sendLiveSnapshotIfNeeded(force: true)
         } catch {
             errorMessage = error.localizedDescription
@@ -227,6 +246,8 @@ final class WatchRouteCardViewModel: ObservableObject {
     func pause() async {
         do {
             locationSampler.stop()
+            barometerSampler.stop()
+            motionSampler.stop()
             workoutController.pause()
             try await recorder.pause()
             session = await recorder.currentSession
@@ -241,6 +262,8 @@ final class WatchRouteCardViewModel: ObservableObject {
             session = await recorder.currentSession
             await workoutController.resume()
             locationSampler.start()
+            barometerSampler.start()
+            motionSampler.start()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -249,6 +272,8 @@ final class WatchRouteCardViewModel: ObservableObject {
     func finish() async {
         do {
             locationSampler.stop()
+            barometerSampler.stop()
+            motionSampler.stop()
             await workoutController.finish()
             if session?.status == .paused {
                 try await recorder.resume()
@@ -270,6 +295,7 @@ final class WatchRouteCardViewModel: ObservableObject {
 
     private func append(_ location: CLLocation) async {
         do {
+            let evidenceTiming = EvidenceLocationTiming(locationTimestamp: location.timestamp)
             currentCoordinate = location.coordinate
             let match = matcher?.match(
                 location: location,
@@ -289,7 +315,8 @@ final class WatchRouteCardViewModel: ObservableObject {
                 heartRateBpm: workoutMetrics.heartRateBpm,
                 nearestRouteDistanceMeters: match.distanceFromRouteMeters,
                 routeProgressMeters: match.routeProgressMeters,
-                timestamp: location.timestamp
+                timestamp: location.timestamp,
+                evidenceTiming: evidenceTiming
             )
             let snapshot = try await recorder.storedSnapshot()
             trackPoints = snapshot.trackPoints
@@ -389,6 +416,18 @@ final class WatchRouteCardViewModel: ObservableObject {
     private func shouldRecordOffRouteUpdate(at timestamp: Date) -> Bool {
         guard let lastOffRouteUpdateAt else { return true }
         return timestamp.timeIntervalSince(lastOffRouteUpdateAt) >= 120
+    }
+}
+
+private extension EvidenceLocationTiming {
+    init(locationTimestamp: Date, receivedAt: Date = Date()) {
+        let receivedNanos = Int64((ProcessInfo.processInfo.systemUptime * 1_000_000_000).rounded())
+        let callbackDelay = max(0, Int64((receivedAt.timeIntervalSince(locationTimestamp) * 1_000_000_000).rounded()))
+        self.init(
+            estimatedFixElapsedRealtimeNanos: receivedNanos - callbackDelay,
+            receivedElapsedRealtimeNanos: receivedNanos,
+            callbackDelayNanos: callbackDelay
+        )
     }
 }
 
@@ -709,6 +748,99 @@ final class WatchWorkoutController: NSObject, HKWorkoutSessionDelegate, HKLiveWo
             }
         }
         onMetricsChange?(metrics)
+    }
+}
+
+@MainActor
+final class WatchBarometerSampler {
+    var onWindow: ((EvidenceBarometerWindow) -> Void)?
+
+    private let altimeter = CMAltimeter()
+    private let queue = OperationQueue()
+    private var accumulator = EvidenceBarometerWindowAccumulator(windowSeconds: 10)
+    private var isRunning = false
+
+    init() {
+        queue.name = "WatchBarometerSampler"
+        queue.qualityOfService = .utility
+    }
+
+    func start() {
+        guard !isRunning, CMAltimeter.isRelativeAltitudeAvailable() else { return }
+        accumulator = EvidenceBarometerWindowAccumulator(windowSeconds: 10)
+        isRunning = true
+        altimeter.startRelativeAltitudeUpdates(to: queue) { [weak self] data, error in
+            guard error == nil, let data else { return }
+            let sample = EvidenceBarometerSample(
+                elapsedRealtimeNanos: Int64((ProcessInfo.processInfo.systemUptime * 1_000_000_000).rounded()),
+                relativeAltitudeMeters: data.relativeAltitude.doubleValue,
+                pressureKpa: data.pressure.doubleValue
+            )
+            Task { @MainActor [weak self] in
+                guard let self, self.isRunning else { return }
+                if let window = self.accumulator.append(sample) {
+                    self.onWindow?(window)
+                }
+            }
+        }
+    }
+
+    func stop() {
+        guard isRunning else { return }
+        isRunning = false
+        altimeter.stopRelativeAltitudeUpdates()
+        if let window = accumulator.flush(), window.sampleCount > 1 {
+            onWindow?(window)
+        }
+    }
+}
+
+@MainActor
+final class WatchMotionSampler {
+    var onWindow: ((EvidenceDeviceMotionWindow) -> Void)?
+
+    private let motionManager = CMMotionManager()
+    private let queue = OperationQueue()
+    private var accumulator = EvidenceDeviceMotionWindowAccumulator(windowSeconds: 10)
+    private var isRunning = false
+
+    init() {
+        queue.name = "WatchMotionSampler"
+        queue.qualityOfService = .utility
+    }
+
+    func start() {
+        guard !isRunning, motionManager.isDeviceMotionAvailable else { return }
+        accumulator = EvidenceDeviceMotionWindowAccumulator(windowSeconds: 10)
+        motionManager.deviceMotionUpdateInterval = 1
+        isRunning = true
+        motionManager.startDeviceMotionUpdates(to: queue) { [weak self] motion, error in
+            guard error == nil, let motion else { return }
+            let sample = EvidenceDeviceMotionSample(
+                elapsedRealtimeNanos: Int64((ProcessInfo.processInfo.systemUptime * 1_000_000_000).rounded()),
+                userAccelerationXMps2: motion.userAcceleration.x * 9.80665,
+                userAccelerationYMps2: motion.userAcceleration.y * 9.80665,
+                userAccelerationZMps2: motion.userAcceleration.z * 9.80665,
+                rotationRateXRadps: motion.rotationRate.x,
+                rotationRateYRadps: motion.rotationRate.y,
+                rotationRateZRadps: motion.rotationRate.z
+            )
+            Task { @MainActor [weak self] in
+                guard let self, self.isRunning else { return }
+                if let window = self.accumulator.append(sample) {
+                    self.onWindow?(window)
+                }
+            }
+        }
+    }
+
+    func stop() {
+        guard isRunning else { return }
+        isRunning = false
+        motionManager.stopDeviceMotionUpdates()
+        if let window = accumulator.flush(), window.sampleCount > 1 {
+            onWindow?(window)
+        }
     }
 }
 

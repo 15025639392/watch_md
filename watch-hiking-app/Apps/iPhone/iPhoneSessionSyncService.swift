@@ -133,6 +133,17 @@ final class iPhoneSessionSyncService: NSObject, ObservableObject {
                 let envelope = try RouteSyncCodec.decoder.decode(SyncEnvelope<EventChunk>.self, from: data)
                 ack = try await receiver.receiveEventChunk(envelope)
                 sessionId = envelope.payload.sessionId
+            case .evidenceManifest:
+                let envelope = try RouteSyncCodec.decoder.decode(SyncEnvelope<EvidenceManifest>.self, from: data)
+                ack = try await receiver.receiveEvidenceManifest(envelope)
+                sessionId = envelope.payload.sessionId
+            case .evidenceChunk:
+                let envelope = try RouteSyncCodec.decoder.decode(SyncEnvelope<EvidenceChunk>.self, from: data)
+                ack = try await receiver.receiveEvidenceChunk(envelope)
+                sessionId = envelope.payload.sessionId
+                if let evidenceData = try await receiver.evidenceData(sessionId: sessionId) {
+                    try await store.saveEvidence(sessionId: sessionId, data: evidenceData)
+                }
             case .sessionSummary:
                 let envelope = try RouteSyncCodec.decoder.decode(SyncEnvelope<SessionSummary>.self, from: data)
                 ack = try await receiver.receiveSummary(envelope)
@@ -387,10 +398,30 @@ private actor iPhoneReceivedSessionStore {
         try FileManager.default.moveItem(at: temporaryURL, to: targetURL)
     }
 
+    func saveEvidence(sessionId: String, data: Data) throws {
+        let targetURL = directoryURL.appendingPathComponent("\(sessionId).evidence.jsonl")
+        let temporaryURL = directoryURL.appendingPathComponent("\(sessionId).evidence.tmp")
+        try data.write(to: temporaryURL, options: [.atomic])
+        if FileManager.default.fileExists(atPath: targetURL.path) {
+            try FileManager.default.removeItem(at: targetURL)
+        }
+        try FileManager.default.moveItem(at: temporaryURL, to: targetURL)
+    }
+
     func listRecords() throws -> [ReceivedSessionRecord] {
         let urls = try FileManager.default.contentsOfDirectory(at: directoryURL, includingPropertiesForKeys: nil)
             .filter { $0.pathExtension == "json" }
-        return try urls.map { try decoder.decode(ReceivedSessionRecord.self, from: Data(contentsOf: $0)) }
+        return try urls.map { url in
+            var record = try decoder.decode(ReceivedSessionRecord.self, from: Data(contentsOf: url))
+            let evidenceURL = directoryURL.appendingPathComponent("\(record.sessionId).evidence.jsonl")
+            if let evidenceData = try? Data(contentsOf: evidenceURL), !evidenceData.isEmpty {
+                record.evidenceByteCount = evidenceData.count
+                record.evidenceLineCount = evidenceData.reduce(0) { count, byte in
+                    byte == 0x0A ? count + 1 : count
+                }
+            }
+            return record
+        }
             .sorted { ($0.summary?.endedAt ?? .distantPast) > ($1.summary?.endedAt ?? .distantPast) }
     }
 }

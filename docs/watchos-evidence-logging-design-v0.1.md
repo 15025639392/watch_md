@@ -444,14 +444,23 @@ WatchSessions/
 
 ### Slice D：iPhone 回传和转换
 
-1. 上传 evidence manifest 和文件。
-2. iPhone 复盘详情展示 evidence 是否完整。
-3. 提供 watch evidence 到 acceptance-web JSONL 的转换脚本或导出入口。
+当前已完成：
+
+1. 上传 `evidenceManifest` 和 `evidenceChunk` envelope。
+2. Watch 上传计划会读取本地 `session-id.evidence.jsonl` 并随会话回传。
+3. iPhone 收齐 evidence chunk 后保存到 `ReceivedSessions/session-id.evidence.jsonl`。
+4. evidence 上传失败不阻断现有 session 完成态。
+5. 提供 `watch-hiking-app/Tools/watch-evidence-to-acceptance.mjs`，把 watch evidence 字段归一化为 `acceptance-web` 可读取的 JSONL alias。
+
+后续待做：
+
+1. iPhone 复盘详情展示 evidence 完整性以外的导出入口。
+2. 用真实 Apple Watch evidence 回归 `acceptance-web` 六层清洗结果。
 
 验收：
 
 1. iPhone `ReceivedSessions` 同时包含 session JSON 和 evidence JSONL。
-2. 导出的 JSONL 可被离线工具读取。
+2. 转换后的 JSONL 可被 `acceptance-web` 离线工具读取。
 
 ## 真机验证清单
 

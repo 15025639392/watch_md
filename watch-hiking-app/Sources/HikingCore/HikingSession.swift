@@ -223,6 +223,10 @@ public actor HikingSessionStore {
         try FileManager.default.moveItem(at: temporaryURL, to: sessionURL)
     }
 
+    public func evidenceLogURL(sessionId: String) -> URL {
+        directoryURL.appendingPathComponent("\(sessionId).evidence.jsonl")
+    }
+
     public func load(sessionId: String) throws -> StoredHikingSession {
         let data = try Data(contentsOf: directoryURL.appendingPathComponent("\(sessionId).json"))
         return try decoder.decode(StoredHikingSession.self, from: data)
@@ -257,6 +261,7 @@ public actor HikingSessionStore {
 public actor HikingSessionRecorder {
     private let store: HikingSessionStore
     private var storedSession: StoredHikingSession?
+    private var evidenceLogger: EvidenceLogger?
 
     public init(store: HikingSessionStore) {
         self.store = store
@@ -269,6 +274,14 @@ public actor HikingSessionRecorder {
     public func recoverOpenSession() async throws -> HikingSession? {
         if let recovered = try await store.recoverOpenSession() {
             storedSession = recovered
+            let logger = try EvidenceLogger(fileURL: await store.evidenceLogURL(sessionId: recovered.session.sessionId))
+            evidenceLogger = logger
+            let policy: EvidenceSamplingPolicy = recovered.session.status == .paused ? .paused : .movingStandard
+            try await logger.logSamplingPolicy(
+                sessionId: recovered.session.sessionId,
+                policy: policy,
+                now: Date()
+            )
             return recovered.session
         }
         return nil
@@ -289,6 +302,19 @@ public actor HikingSessionRecorder {
         let stored = StoredHikingSession(session: session, trackPoints: [], events: [event], summary: nil)
         try await store.save(stored)
         storedSession = stored
+        let logger = try EvidenceLogger(fileURL: await store.evidenceLogURL(sessionId: session.sessionId))
+        evidenceLogger = logger
+        try await logger.logSessionMetadata(session: session, route: route, watchDeviceId: watchDeviceId, now: now)
+        try await logger.logSamplingPolicy(sessionId: session.sessionId, policy: .movingStandard, now: now)
+        try await logger.logSessionEvent(
+            sessionId: session.sessionId,
+            type: .sessionStarted,
+            coordinate: nil,
+            routeProgressMeters: nil,
+            severity: .info,
+            payload: [:],
+            timestamp: now
+        )
         return session
     }
 
@@ -311,12 +337,26 @@ public actor HikingSessionRecorder {
         heartRateBpm: Double? = nil,
         nearestRouteDistanceMeters: Double? = nil,
         routeProgressMeters: Double? = nil,
-        timestamp: Date = Date()
+        timestamp: Date = Date(),
+        evidenceTiming: EvidenceLocationTiming = EvidenceLocationTiming()
     ) async throws -> TrackPoint? {
         guard var stored = storedSession else { throw HikingSessionError.noActiveSession }
         guard stored.session.status != .finished, stored.session.status != .abandoned else {
             throw HikingSessionError.sessionAlreadyFinished
         }
+        try await evidenceLogger?.logRawLocation(
+            sessionId: stored.session.sessionId,
+            timestamp: timestamp,
+            latitude: latitude,
+            longitude: longitude,
+            elevationMeters: elevationMeters,
+            horizontalAccuracyMeters: horizontalAccuracyMeters,
+            verticalAccuracyMeters: verticalAccuracyMeters,
+            speedMetersPerSecond: speedMetersPerSecond,
+            courseDegrees: courseDegrees,
+            isPaused: stored.session.status == .paused,
+            timing: evidenceTiming
+        )
         guard stored.session.status == .active else {
             stored.session.lastUpdatedAt = timestamp
             try await store.save(stored)
@@ -373,7 +413,36 @@ public actor HikingSessionRecorder {
         stored.session.lastUpdatedAt = timestamp
         try await store.save(stored)
         storedSession = stored
+        try await evidenceLogger?.logSessionEvent(
+            sessionId: stored.session.sessionId,
+            type: type,
+            coordinate: coordinate,
+            routeProgressMeters: routeProgressMeters,
+            severity: severity,
+            payload: payload,
+            timestamp: timestamp
+        )
         return event
+    }
+
+    public func appendBarometerWindow(_ window: EvidenceBarometerWindow, timestamp: Date = Date()) async throws {
+        guard let stored = storedSession else { throw HikingSessionError.noActiveSession }
+        guard stored.session.status == .active else { return }
+        try await evidenceLogger?.logBarometerWindow(
+            sessionId: stored.session.sessionId,
+            window: window,
+            timestamp: timestamp
+        )
+    }
+
+    public func appendDeviceMotionWindow(_ window: EvidenceDeviceMotionWindow, timestamp: Date = Date()) async throws {
+        guard let stored = storedSession else { throw HikingSessionError.noActiveSession }
+        guard stored.session.status == .active else { return }
+        try await evidenceLogger?.logDeviceMotionWindow(
+            sessionId: stored.session.sessionId,
+            window: window,
+            timestamp: timestamp
+        )
     }
 
     public func finish(now: Date = Date()) async throws -> SessionSummary {
@@ -387,12 +456,27 @@ public actor HikingSessionRecorder {
         stored.session.endedAt = now
         stored.session.lastUpdatedAt = now
         stored.session.syncStatus = .pendingUpload
-        stored.events.append(SessionEvent(sessionId: stored.session.sessionId, type: .sessionFinished, timestamp: now))
+        let finishEvent = SessionEvent(sessionId: stored.session.sessionId, type: .sessionFinished, timestamp: now)
+        stored.events.append(finishEvent)
 
         let summary = makeSummary(session: stored.session, startedAt: startedAt, endedAt: now, trackPoints: stored.trackPoints, events: stored.events)
         stored.summary = summary
         try await store.save(stored)
         storedSession = stored
+        try await evidenceLogger?.logSessionEvent(
+            sessionId: stored.session.sessionId,
+            type: finishEvent.type,
+            coordinate: finishEvent.coordinate,
+            routeProgressMeters: finishEvent.routeProgressMeters,
+            severity: finishEvent.severity,
+            payload: finishEvent.payload,
+            timestamp: finishEvent.timestamp
+        )
+        try await evidenceLogger?.logSamplingPolicy(
+            sessionId: stored.session.sessionId,
+            policy: .finished,
+            now: now
+        )
         return summary
     }
 
@@ -410,9 +494,24 @@ public actor HikingSessionRecorder {
         case (.active, .paused), (.paused, .active):
             stored.session.status = status
             stored.session.lastUpdatedAt = now
-            stored.events.append(SessionEvent(sessionId: stored.session.sessionId, type: eventType, timestamp: now))
+            let event = SessionEvent(sessionId: stored.session.sessionId, type: eventType, timestamp: now)
+            stored.events.append(event)
             try await store.save(stored)
             storedSession = stored
+            try await evidenceLogger?.logSessionEvent(
+                sessionId: stored.session.sessionId,
+                type: event.type,
+                coordinate: event.coordinate,
+                routeProgressMeters: event.routeProgressMeters,
+                severity: event.severity,
+                payload: event.payload,
+                timestamp: event.timestamp
+            )
+            try await evidenceLogger?.logSamplingPolicy(
+                sessionId: stored.session.sessionId,
+                policy: status == .paused ? .paused : .movingStandard,
+                now: now
+            )
         default:
             throw HikingSessionError.invalidTransition(from: stored.session.status, to: status)
         }
