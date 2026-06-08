@@ -1,9 +1,11 @@
 # 华为 Wear Engine / Health Kit / AppGallery 申请与 SDK 接入说明 v0.1
 
-更新日期：2026-06-06  
+更新日期：2026-06-06；复查：2026-06-08  
 适用范围：Apple Watch MVP 之后的华为生态验证预研。本文不改变当前首发 Apple Watch / watchOS 的 MVP 范围。
 
 ## 结论摘要
+
+2026-06-08 复查补充：华为手表应用接入不能只写“AppGallery / 手表端应用市场”。`WATCH` 数字系列应验证完整智能手表 App 分类和 DevEco 调试安装；`WATCH GT` 系列应单独验证运动健康 App 内的设备应用市场、`liteWearable` 或手机协同路径。GT 官方支持页说明 GT 手表侧不支持安装华为应用市场，需要在运动健康 App 的设备详情页进入应用市场安装已支持应用，因此 GT 首轮仍应按轻量导航协同设计。
 
 | 能力 | 是什么 | 是否需要申请 | SDK / 工具获取方式 | 当前项目用途 |
 | --- | --- | --- | --- | --- |
@@ -135,6 +137,19 @@ AppGallery 本身是应用分发平台，不是单一 SDK。常用入口分为�
 | DevEco Studio | 从华为 DevEco Studio 官方下载页安装 |
 | HarmonyOS SDK / HMS SDK | 在 DevEco Studio 的 SDK Manager 中安装 |
 
+### 手表应用路径复查
+
+| 目标设备线 | 安装 / 分发路径假设 | 当前状态 |
+| --- | --- | --- |
+| WATCH 数字系列 | DevEco Studio 调试安装、智能手表应用分类、AppGallery Connect 手表应用配置 | 需要 WATCH 5 / WATCH 4 真机和 AGC 后台验证 |
+| WATCH GT 系列 | 运动健康 App 的设备详情页应用市场、`liteWearable` 或 Wear Engine 手机协同 | 需要 GT 6 / GT 5 真机验证；不能默认完整智能表应用路径 |
+| FIT / Ultimate / D/D2 | 可能出现在部分应用或导航支持清单中 | 只作为补充验证，不进入首批华为工程目标 |
+
+官方入口：
+
+- [应用市场的智能手表应用分类介绍](https://consumer.huawei.com/cn/support/content/zh-cn15876333)
+- [HUAWEI WATCH GT 系列应用市场支持的手表应用](https://consumer.huawei.com/cn/support/content/zh-cn15878302/)
+
 Android 工程常见配置示例：
 
 ```gradle
@@ -259,7 +274,7 @@ node huawei-validation/scripts/run-local-flow-demo.mjs
 以下内容必须在华为账号后台和真机上再次确认，不能直接作为产品承诺：
 
 1. Wear Engine 在中国区、海外区、华为手机、非华为 Android、iPhone 上的能力差异。
-2. WATCH 数字系列和 WATCH GT 系列是否支持同一套第三方手表 App 安装、调试和上架路径。
+2. WATCH 数字系列和 WATCH GT 系列是否支持同一套第三方手表 App 安装、调试和上架路径；2026-06-08 复查后倾向于先按两条路径验证，而不是默认同一套。
 3. Health Kit 可申请的数据字段、审核周期和敏感数据限制。
 4. AppGallery 是否支持目标手表应用类型、目标地区和目标设备分发。
 5. 后台定位、长时间运动、震动、通知、地图资源和传感器读取在目标机型上的实际表现。

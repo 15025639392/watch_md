@@ -1,12 +1,12 @@
 # 手表设备支持情况与户外 App 开发调研
 
-调研日期：2026-06-05；Garmin/Suunto/COROS 复查：2026-06-08；小米/OPPO/vivo 复查：2026-06-08；Wear OS 国内适配复查：2026-06-08  
+调研日期：2026-06-05；华为复查：2026-06-08；Garmin/Suunto/COROS 复查：2026-06-08；小米/OPPO/vivo 复查：2026-06-08；Wear OS 国内适配复查：2026-06-08  
 重点平台：Apple Watch、华为手表、Wear OS、Garmin、Suunto、COROS、小米、OPPO、vivo  
 调研目标：面向徒步人群，梳理主流智能手表对户外 App 的支持能力、手表端可开发功能、手机 App 与手表 App 的联动方式，以及产品落地建议。
 
 ## 结论摘要
 
-如果目标是开发严肃户外 App，Apple Watch 是当前第三方开发最成熟、能力最确定的平台，适合优先做 MVP 和核心体验验证。华为手表适合在 HarmonyOS 生态内做轻量户外能力、健康数据联动和手机-手表协同，但不同机型、系统版本、地区和手机生态差异更大，需要按目标型号验证。
+如果目标是开发严肃户外 App，Apple Watch 是当前第三方开发最成熟、能力最确定的平台，适合优先做 MVP 和核心体验验证。华为手表适合在 HarmonyOS 生态内做轻量户外能力、健康数据联动和手机-手表协同，但不同机型、系统版本、地区、手机生态和应用安装路径差异更大，需要按目标型号验证。2026-06-08 复查后，华为路线应继续拆成 `WATCH` 数字系列完整智能表验证线和 `WATCH GT` 系列长续航轻量协同验证线。
 
 如果目标人群明确是徒步用户，平台判断要从“能不能开发完整 App”扩展为“能不能稳定完成长时间路线导航、偏航提醒、爬升统计、返航和离线使用”。因此 Apple Watch 仍适合首发验证产品体验，但 Garmin/佳明的重要性会上升，尤其适合专业徒步、长线徒步和重度户外用户。
 
@@ -220,6 +220,8 @@ Apple Watch 适合做完整的户外运动手表 App。它在定位、健康数�
 
 2026-06-06 追加调研结论：华为平台应按“智能可穿戴、轻量级智能可穿戴、手环、儿童/特殊形态设备”拆开判断。当前优先验证 `WATCH` 数字系列和 `WATCH GT` 系列：前者用于验证完整智能表 App、后台定位和安装/上架路径，后者用于验证长续航户外用户、轻量导航和手机协同稳定性。华为消费者支持页也能证明 WATCH、GT、FIT、Ultimate、D/D2 等多个系列存在手表应用市场、地图或导航同步场景，但首批资源不分散到 FIT、Ultimate、D/D2。详细矩阵见 [华为各类型手表支持情况调研 v0.1](./docs/huawei-watch-support-research-v0.1.md)。
 
+2026-06-08 复查补充：华为应用安装路径需要进一步拆分。`WATCH` 数字系列优先验证完整智能手表 App 分类、DevEco 调试安装和 AGC 配置；`WATCH GT` 系列官方支持页说明手表侧不支持安装华为应用市场，需要在运动健康 App 设备详情页进入应用市场安装已支持应用，因此 GT 首轮仍按轻量导航、提醒和手机协同设计。高德、百度、花瓣地图等导航/地图支持页只能证明生态内存在导航同步体验，不能证明第三方徒步 App 可复用同等底层地图、后台能力或权限。
+
 ### 华为参考资料
 
 - Huawei Pairing watch/band with Android phone: https://consumer.huawei.com/en/support/content/en-us16008856/
@@ -229,6 +231,9 @@ Apple Watch 适合做完整的户外运动手表 App。它在定位、健康数�
 - Huawei Wear Engine 中文页: https://developer.huawei.com/consumer/cn/hms/huawei-wearengine/
 - Huawei Health Kit: https://developer.huawei.com/consumer/en/hms/huaweihealth/
 - Huawei Location Kit Codelab: https://developer.huawei.com/consumer/en/codelab/HMS-LocationKit/
+- Huawei 智能手表应用分类介绍: https://consumer.huawei.com/cn/support/content/zh-cn15876333
+- Huawei WATCH GT 系列应用市场支持的手表应用: https://consumer.huawei.com/cn/support/content/zh-cn15878302/
+- HUAWEI WATCH GT 6 系列功能兼容性清单: https://consumer.huawei.com/cn/support/content/zh-cn16066413/
 
 ## Wear OS 支持情况
 

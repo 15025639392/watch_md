@@ -1,10 +1,12 @@
 # 华为各类型手表支持情况调研 v0.1
 
-调研日期：2026-06-06  
+调研日期：2026-06-06；复查：2026-06-08  
 调研目标：面向后续 Android / 华为生态路线，判断华为不同类型手表是否适合承载徒步导航 App 的手表端能力。  
 证据原则：优先使用华为开发者文档、华为消费者支持页和产品规格页；非官方资料只作为风险提示，不作为产品承诺依据。
 
 ## 结论摘要
+
+2026-06-08 复查后，原结论仍成立，但需要把“应用安装路径”写得更窄：`WATCH` 数字系列更适合验证完整智能手表 App；`WATCH GT` 系列虽然有应用市场支持清单和导航/地图场景，但官方页面说明 GT 侧应用通常经由“运动健康 App > 设备 > 应用市场”查询或安装，不应按 WATCH 3/4/5 的完整智能手表应用路径承诺。华为消费者支持页还明确存在 HarmonyOS / Android / iOS 手机兼容差异，因此 iPhone + 华为手表继续只作为基础兼容观察。
 
 华为手表不能按“华为手表”这个品牌整体承诺支持。更稳妥的判断方式是把设备分为四类：
 
@@ -33,12 +35,14 @@
 
 - [HarmonyOS 穿戴应用开发入门 - 中文](https://developer.huawei.com/consumer/cn/multidevice/wearables/get-started/)
 - [Getting Started with HarmonyOS Wearable App Development - English](https://developer.huawei.com/consumer/en/multidevice/wearables/get-started/)
+- [应用市场的智能手表应用分类介绍](https://consumer.huawei.com/cn/support/content/zh-cn15876333)
 
 产品含义：
 
 | 证据 | 能支持的判断 | 不能直接推出的判断 |
 | --- | --- | --- |
 | 官方存在智能可穿戴 / 轻量级智能可穿戴开发入口 | 华为确实提供穿戴应用开发路径 | 所有 GT / Fit / Ultimate / D 型号都能安装和运行同等能力的第三方 App |
+| 官方“智能手表应用分类”页面列出支持范围，且提示其他手表设备连接后可能不支持该分类应用 | WATCH 3/4 等完整智能表应用路径与 GT 应用路径需要拆开 | 不能把 WATCH 应用分类直接扩展到所有 GT / Fit / D / Ultimate |
 | 官方提到表冠、智慧手势、跨设备接续 | 部分手表具备适合导航交互的系统能力 | 所有型号都支持相同表冠事件、后台能力或地图渲染能力 |
 | 轻量级智能穿戴使用更轻量开发范式 | GT / Fit 等长续航设备可能不是完整智能表模式 | 不能假设轻量设备能承载复杂离线地图或长时间后台第三方任务 |
 
@@ -68,6 +72,7 @@
 
 | 场景 | 官方页面中的关键证据 | 对徒步 App 的含义 |
 | --- | --- | --- |
+| GT 系列应用市场支持清单 | 页面说明 GT 手表侧不支持安装华为应用市场，需要在运动健康 App 设备详情页进入“应用市场”查询或安装已支持应用；清单覆盖 GT6/GT5/GT4/GT3 等系列的部分应用 | GT 有应用安装/管理路径，但更偏手机侧管理和白名单式能力确认 |
 | 喜马拉雅穿戴 App | 页面说明在华为运动健康设备详情页点击“应用市场”，给手表下载并安装喜马拉雅穿戴 App；同时列出 WATCH 3/4/5、GT 2/3/4/5/6、Fit 2/3/4/5、Ultimate、D/D2 等大量适用产品 | 多个系列具备安装手表侧应用或预置应用的用户路径 |
 | 高德地图导航信息同步 | 页面说明点击手表上键进入应用列表，选择应用市场，搜索并下载高德地图；列出 GT、Fit、D、Ultimate、WATCH 3/4 等系列 | 至少存在“手机导航信息同步到手表”的成熟官方/合作应用范式 |
 | 百度地图导航信息同步 | 页面说明在手表应用市场搜索百度地图并下载；列出多个 GT、Fit、D、Ultimate、WATCH 系列 | 导航信息同步是华为穿戴生态已有场景，但这不等于第三方可做完整地图引擎 |
@@ -75,6 +80,8 @@
 
 证据来源：
 
+- [HUAWEI WATCH GT 系列应用市场支持的手表应用](https://consumer.huawei.com/cn/support/content/zh-cn15878302/)
+- [应用市场的智能手表应用分类介绍](https://consumer.huawei.com/cn/support/content/zh-cn15876333)
 - [华为手表安装使用喜马拉雅穿戴 App](https://consumer.huawei.com/cn/support/content/zh-cn15794571/)
 - [高德地图导航信息同步至手表](https://consumer.huawei.com/cn/support/content/zh-cn15821752/)
 - [百度地图导航信息同步至手表](https://consumer.huawei.com/cn/support/content/zh-cn15771250/)
@@ -87,6 +94,16 @@
 1. 第三方开发者能无差别上架同类应用到所有列名设备。
 2. 轻量级智能穿戴能承载 GPX 离线地图、后台长时间定位和自绘地图。
 3. 非华为 Android 或 iPhone 配对时能获得相同安装、通信和后台能力。
+
+### 2026-06-08 复查补充：应用安装路径要拆成三类
+
+| 路径 | 官方证据 | 产品判断 |
+| --- | --- | --- |
+| 智能手表应用分类 | 华为支持页说明“应用市场智能手表分类应用”有明确支持设备范围，主要覆盖 WATCH 3/4 系列等智能表设备 | 用于验证 WATCH 数字系列完整 App 路径；仍需确认 WATCH 5 / 目标地区 / AGC 上架细则 |
+| GT 系列应用市场 | GT 支持页说明手表侧不支持安装华为应用市场，需要从运动健康 App 的设备详情页安装已支持应用 | GT 不应按完整智能表 App 承诺；首轮更适合轻量应用、提醒和手机协同 |
+| 导航 / 地图合作应用 | 高德、百度、花瓣地图等支持页列出多系列适用产品 | 可证明生态内存在导航同步体验，但不能证明第三方徒步 App 可复用同等底层地图、后台或权限 |
+
+因此，华为路线的下一步不是继续泛泛调研，而是用目标设备把三个问题实测成表格：能否安装我们的 Demo、能否通过 Wear Engine 下发路线并 ACK、能否在户外息屏/断连场景下稳定提醒和记录。
 
 ### 4. 手机配对和 Huawei Health 版本是前置条件
 
@@ -208,6 +225,7 @@
 证据来源：
 
 - [HUAWEI WATCH GT 6 系列配套 HarmonyOS / Android / iOS 手机的功能兼容性清单](https://consumer.huawei.com/cn/support/content/zh-cn16066413/)
+- [Compatibility of the HUAWEI WATCH GT 6 Series and Android/iOS Phones](https://consumer.huawei.com/ar/support/content/es-us16066413/)
 - [HUAWEI WATCH GT 5 系列配套 HarmonyOS / Android / iOS 手机的功能兼容性清单](https://consumer.huawei.com/cn/support/content/zh-cn16016096/)
 - [HUAWEI WATCH GT 6 规格参数](https://consumer.huawei.com/cn/wearables/watch-gt6/specs/)
 - [HUAWEI WATCH GT 系列应用市场支持的手表应用](https://consumer.huawei.com/cn/support/content/zh-cn15878302/)
