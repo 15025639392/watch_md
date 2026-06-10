@@ -35,6 +35,7 @@
 - [WatchOS 能力使用取舍](./docs/watchos-capability-decisions-v0.1.md)
 - [WatchOS 徒步 App 开发提示词与技术实施计划](./docs/watchos-development-prompt-implementation-plan-v0.1.md)
 - [WatchOS 徒步 App 开发与上架流程](./docs/watchos-development-release-flow-v0.1.md)
+- [watchOS 版本支持情况调研](./docs/watchos-version-support-research-v0.1.md)
 - [iPhone App + Apple Watch App 上架准备文档](./docs/iphone-watchos-app-store-submission-v0.1.md)
 - [WatchOS 徒步 App 产品原型 v0.1](./docs/prototypes/watchos-product-prototype-v0.1.html)
 - [iPhone 徒步 App 产品原型 v0.1](./docs/prototypes/iphone-product-prototype-v0.1.html)
