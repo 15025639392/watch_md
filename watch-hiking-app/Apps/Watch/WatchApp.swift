@@ -1043,7 +1043,7 @@ struct WatchRouteMapView: View {
             }
 
             if let currentCoordinate {
-                Annotation("", coordinate: currentCoordinate) {
+                Annotation("", coordinate: currentCoordinate.gcj02DisplayCoordinate) {
                     Image(systemName: "location.north.fill")
                         .font(.caption.bold())
                         .foregroundStyle(.white)
@@ -1053,17 +1053,17 @@ struct WatchRouteMapView: View {
             }
 
             if !isFreeRecording, let currentCoordinate, let projected = routeMatch.projectedCoordinate, routeMatch.status == .offRoute {
-                MapPolyline(coordinates: [currentCoordinate, projected])
+                MapPolyline(coordinates: [currentCoordinate.gcj02DisplayCoordinate, projected.gcj02DisplayCoordinate])
                     .stroke(.red, style: StrokeStyle(lineWidth: 3, dash: [5, 4]))
             }
 
             if !isFreeRecording {
-                Annotation("", coordinate: route.route.startPoint.mapCoordinate) {
+                Annotation("", coordinate: route.route.startPoint.displayMapCoordinate) {
                     Circle()
                         .fill(.green)
                         .frame(width: 8, height: 8)
                 }
-                Annotation("", coordinate: route.route.endPoint.mapCoordinate) {
+                Annotation("", coordinate: route.route.endPoint.displayMapCoordinate) {
                     Circle()
                         .fill(.red)
                         .frame(width: 8, height: 8)
@@ -1087,11 +1087,11 @@ struct WatchRouteMapView: View {
     }
 
     private var routeCoordinates: [CLLocationCoordinate2D] {
-        route.simplifiedForWatch.points.map(\.mapCoordinate)
+        route.simplifiedForWatch.points.map(\.displayMapCoordinate)
     }
 
     private var trackCoordinates: [CLLocationCoordinate2D] {
-        trackPoints.map(\.mapCoordinate)
+        trackPoints.map(\.displayMapCoordinate)
     }
 
     private var isFreeRecording: Bool {
@@ -1101,13 +1101,13 @@ struct WatchRouteMapView: View {
     private var mapRegion: MKCoordinateRegion {
         if let currentCoordinate {
             return MKCoordinateRegion(
-                center: currentCoordinate,
+                center: currentCoordinate.gcj02DisplayCoordinate,
                 latitudinalMeters: 500,
                 longitudinalMeters: 500
             )
         }
         return MKCoordinateRegion(
-            center: route.route.bounds.centerCoordinate,
+            center: route.route.bounds.displayCenterCoordinate,
             span: route.route.bounds.coordinateSpan(padding: 1.25)
         )
     }
@@ -1132,7 +1132,7 @@ struct WatchRouteMapView: View {
 
         withAnimation(.easeInOut(duration: 0.25)) {
             cameraPosition = .region(MKCoordinateRegion(
-                center: currentCoordinate,
+                center: currentCoordinate.gcj02DisplayCoordinate,
                 latitudinalMeters: routeMatch.status == .offRoute ? 380 : 500,
                 longitudinalMeters: routeMatch.status == .offRoute ? 380 : 500
             ))
@@ -1493,17 +1493,35 @@ private extension RoutePoint {
     var mapCoordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
+
+    var displayMapCoordinate: CLLocationCoordinate2D {
+        GeoMath.wgs84ToGCJ02(coordinate).mapCoordinate
+    }
 }
 
 private extension TrackPoint {
     var mapCoordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
+
+    var displayMapCoordinate: CLLocationCoordinate2D {
+        GeoMath.wgs84ToGCJ02(GeoCoordinate(latitude: latitude, longitude: longitude)).mapCoordinate
+    }
 }
 
 private extension GeoCoordinate {
     var mapCoordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
+
+    var displayMapCoordinate: CLLocationCoordinate2D {
+        GeoMath.wgs84ToGCJ02(self).mapCoordinate
+    }
+}
+
+private extension CLLocationCoordinate2D {
+    var gcj02DisplayCoordinate: CLLocationCoordinate2D {
+        GeoMath.wgs84ToGCJ02(GeoCoordinate(latitude: latitude, longitude: longitude)).mapCoordinate
     }
 }
 
@@ -1514,11 +1532,11 @@ private extension CLLocation {
 }
 
 private extension GeoBounds {
-    var centerCoordinate: CLLocationCoordinate2D {
-        CLLocationCoordinate2D(
+    var displayCenterCoordinate: CLLocationCoordinate2D {
+        GeoMath.wgs84ToGCJ02(GeoCoordinate(
             latitude: (minLatitude + maxLatitude) / 2,
             longitude: (minLongitude + maxLongitude) / 2
-        )
+        )).mapCoordinate
     }
 
     func coordinateSpan(padding: Double) -> MKCoordinateSpan {

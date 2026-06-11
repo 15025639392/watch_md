@@ -1545,7 +1545,7 @@ private struct RoutePatternMap: UIViewRepresentable {
             mapView.removeOverlays(mapView.overlays)
             mapView.removeAnnotations(mapView.annotations.filter { !($0 is UserLocationAnnotation) })
 
-            let coordinates = route.original.points.map(\.locationCoordinate)
+            let coordinates = route.original.points.map(\.displayMapCoordinate)
             if coordinates.count >= 2 {
                 let polyline = MKPolyline(coordinates: coordinates, count: coordinates.count)
                 context.coordinator.routeOverlay = polyline
@@ -1556,11 +1556,11 @@ private struct RoutePatternMap: UIViewRepresentable {
                     animated: false
                 )
             } else {
-                mapView.setRegion(route.mapRegion, animated: false)
+                mapView.setRegion(route.displayMapRegion, animated: false)
             }
 
-            mapView.addAnnotation(RouteEndpointAnnotation(title: "起点", coordinate: route.route.startPoint.locationCoordinate))
-            mapView.addAnnotation(RouteEndpointAnnotation(title: "终点", coordinate: route.route.endPoint.locationCoordinate))
+            mapView.addAnnotation(RouteEndpointAnnotation(title: "起点", coordinate: route.route.startPoint.displayMapCoordinate))
+            mapView.addAnnotation(RouteEndpointAnnotation(title: "终点", coordinate: route.route.endPoint.displayMapCoordinate))
         }
 
         context.coordinator.updateUserLocation(locationSnapshot, in: mapView)
@@ -1610,14 +1610,14 @@ private struct RoutePatternMap: UIViewRepresentable {
             }
 
             if let userLocationAnnotation {
-                userLocationAnnotation.coordinate = snapshot.coordinate
+                userLocationAnnotation.coordinate = snapshot.coordinate.gcj02DisplayCoordinate
                 userLocationAnnotation.courseDegrees = snapshot.courseDegrees
                 if let view = mapView.view(for: userLocationAnnotation) as? UserLocationAnnotationView {
                     view.update(courseDegrees: snapshot.courseDegrees)
                 }
             } else {
                 let annotation = UserLocationAnnotation(
-                    coordinate: snapshot.coordinate,
+                    coordinate: snapshot.coordinate.gcj02DisplayCoordinate,
                     courseDegrees: snapshot.courseDegrees
                 )
                 userLocationAnnotation = annotation
@@ -1662,9 +1662,9 @@ private struct SessionTrackMap: UIViewRepresentable {
         mapView.removeOverlays(mapView.overlays)
         mapView.removeAnnotations(mapView.annotations)
 
-        let coordinates = trackPoints.sorted { $0.sequence < $1.sequence }.map(\.locationCoordinate)
+        let coordinates = trackPoints.sorted { $0.sequence < $1.sequence }.map(\.displayMapCoordinate)
         guard let first = coordinates.first else { return }
-        let routeCoordinates = routePoints.map(\.locationCoordinate)
+        let routeCoordinates = routePoints.map(\.displayMapCoordinate)
 
         if routeCoordinates.count >= 2 {
             let polyline = MKPolyline(coordinates: routeCoordinates, count: routeCoordinates.count)
@@ -1696,7 +1696,7 @@ private struct SessionTrackMap: UIViewRepresentable {
         }
 
         if let current = coordinates.last, let projectedRouteCoordinate {
-            let offRouteCoordinates = [current, projectedRouteCoordinate.locationCoordinate]
+            let offRouteCoordinates = [current, projectedRouteCoordinate.displayMapCoordinate]
             let polyline = MKPolyline(coordinates: offRouteCoordinates, count: offRouteCoordinates.count)
             context.coordinator.offRouteOverlay = polyline
             mapView.addOverlay(polyline)
@@ -2495,12 +2495,12 @@ private extension RouteSyncState {
 }
 
 private extension InstalledRoute {
-    var mapRegion: MKCoordinateRegion {
+    var displayMapRegion: MKCoordinateRegion {
         let bounds = route.bounds
-        let center = CLLocationCoordinate2D(
+        let center = GeoMath.wgs84ToGCJ02(GeoCoordinate(
             latitude: (bounds.minLatitude + bounds.maxLatitude) / 2,
             longitude: (bounds.minLongitude + bounds.maxLongitude) / 2
-        )
+        )).locationCoordinate
         let latitudeDelta = max((bounds.maxLatitude - bounds.minLatitude) * 1.6, 0.01)
         let longitudeDelta = max((bounds.maxLongitude - bounds.minLongitude) * 1.6, 0.01)
         return MKCoordinateRegion(
@@ -2512,8 +2512,8 @@ private extension InstalledRoute {
 }
 
 private extension RoutePoint {
-    var locationCoordinate: CLLocationCoordinate2D {
-        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    var displayMapCoordinate: CLLocationCoordinate2D {
+        GeoMath.wgs84ToGCJ02(coordinate).locationCoordinate
     }
 }
 
@@ -2521,11 +2521,21 @@ private extension GeoCoordinate {
     var locationCoordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
+
+    var displayMapCoordinate: CLLocationCoordinate2D {
+        GeoMath.wgs84ToGCJ02(self).locationCoordinate
+    }
 }
 
 private extension TrackPoint {
-    var locationCoordinate: CLLocationCoordinate2D {
-        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    var displayMapCoordinate: CLLocationCoordinate2D {
+        GeoMath.wgs84ToGCJ02(GeoCoordinate(latitude: latitude, longitude: longitude)).locationCoordinate
+    }
+}
+
+private extension CLLocationCoordinate2D {
+    var gcj02DisplayCoordinate: CLLocationCoordinate2D {
+        GeoMath.wgs84ToGCJ02(GeoCoordinate(latitude: latitude, longitude: longitude)).locationCoordinate
     }
 }
 

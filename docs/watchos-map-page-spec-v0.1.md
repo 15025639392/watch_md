@@ -1,6 +1,6 @@
 # WatchOS 徒步地图页规格 v0.1
 
-更新日期：2026-06-05
+更新日期：2026-06-11
 
 ## 设计目标
 
@@ -103,6 +103,27 @@ MVP 不在 Watch 地图页提供标准、卫星、混合等图层切换入口。
 
 1. [MapStyle.imagery - Apple Developer Documentation](https://developer.apple.com/documentation/mapkit/mapstyle/imagery)
 2. [MapStyle.hybrid(elevation:pointsOfInterest:showsTraffic:) - Apple Developer Documentation](https://developer.apple.com/documentation/mapkit/mapstyle/hybrid%28elevation%3Apointsofinterest%3Ashowstraffic%3A%29)
+
+## 国内瓦片坐标叠加
+
+Core Location 返回的当前位置、GPX 路线点和 App 会话轨迹统一按 WGS84 保存和计算。若当前地图底图或国内瓦片源使用 GCJ02，Watch 地图页显示层必须在叠加前把 WGS84 转为 GCJ02。
+
+需要转换后显示的元素：
+
+1. 计划路线 polyline。
+2. 已走轨迹 polyline。
+3. 当前定位点和方向箭头。
+4. 起点、终点和关键点标记。
+5. 偏航连接线两端坐标。
+6. 自动居中和路线全览的相机中心。
+
+不转换的场景：
+
+1. 偏航检测、最近路线投影和剩余距离计算。
+2. TrackPoint 存储、会话回传和 GPX 导出。
+3. WatchConnectivity 同步载荷。
+
+这样可以保证国内 GCJ02 瓦片上视觉对齐，同时保留 WGS84 原始轨迹和路线语义。
 
 ## 主要状态
 

@@ -1,6 +1,6 @@
 # 徒步路线与会话数据模型 v0.1
 
-更新日期：2026-06-05
+更新日期：2026-06-11
 
 ## 设计目标
 
@@ -14,6 +14,15 @@
 4. Watch 端必须能在 iPhone 断连时独立读写会话数据。
 5. 所有可同步对象都需要稳定 ID、版本和时间戳。
 6. `TrackPoint` 是产品轨迹点，不承载完整 raw evidence；低功耗证据日志、采样策略、motion 和 barometer 窗口见 [watchOS 低功耗证据采集设计 v0.1](./watchos-evidence-logging-design-v0.1.md)。
+7. App 内部路线、轨迹、关键点、事件和同步封包统一保存 WGS84 坐标；如果国内地图底图或瓦片使用 GCJ02，只能在地图显示叠加层转换为 GCJ02，不写回核心模型。
+
+## 坐标系边界
+
+Core Location、GPX 导入、会话轨迹、偏航检测、距离计算、WatchConnectivity 同步和 GPX 导出均以 WGS84 为准。
+
+国内地图底图若使用 GCJ02 瓦片，显示计划路线、实际轨迹、当前位置、起终点、偏航连接线和地图相机中心时，应将 WGS84 转为 GCJ02 后再叠加。该转换属于渲染适配层，不改变 `GeoCoordinate`、`RoutePoint`、`TrackPoint`、`Waypoint`、`TurnPoint` 或 `SessionEvent` 的存储语义。
+
+禁止把已经转换为 GCJ02 的显示坐标再次参与偏航检测、剩余距离、同步、会话归档或导出，避免二次偏移和历史数据污染。
 
 ## 模型总览
 
