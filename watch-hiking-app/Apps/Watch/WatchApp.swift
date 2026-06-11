@@ -789,31 +789,23 @@ final class WatchBarometerSampler {
     var onWindow: ((EvidenceBarometerWindow) -> Void)?
 
     private let altimeter = CMAltimeter()
-    private let queue = OperationQueue()
     private var accumulator = EvidenceBarometerWindowAccumulator(windowSeconds: 10)
     private var isRunning = false
-
-    init() {
-        queue.name = "WatchBarometerSampler"
-        queue.qualityOfService = .utility
-    }
 
     func start() {
         guard !isRunning, CMAltimeter.isRelativeAltitudeAvailable() else { return }
         accumulator = EvidenceBarometerWindowAccumulator(windowSeconds: 10)
         isRunning = true
-        altimeter.startRelativeAltitudeUpdates(to: queue) { [weak self] data, error in
+        altimeter.startRelativeAltitudeUpdates(to: .main) { [weak self] data, error in
             guard error == nil, let data else { return }
             let sample = EvidenceBarometerSample(
                 elapsedRealtimeNanos: Int64((ProcessInfo.processInfo.systemUptime * 1_000_000_000).rounded()),
                 relativeAltitudeMeters: data.relativeAltitude.doubleValue,
                 pressureKpa: data.pressure.doubleValue
             )
-            Task { @MainActor [weak self] in
-                guard let self, self.isRunning else { return }
-                if let window = self.accumulator.append(sample) {
-                    self.onWindow?(window)
-                }
+            guard let self, self.isRunning else { return }
+            if let window = self.accumulator.append(sample) {
+                self.onWindow?(window)
             }
         }
     }
@@ -833,21 +825,15 @@ final class WatchMotionSampler {
     var onWindow: ((EvidenceDeviceMotionWindow) -> Void)?
 
     private let motionManager = CMMotionManager()
-    private let queue = OperationQueue()
     private var accumulator = EvidenceDeviceMotionWindowAccumulator(windowSeconds: 10)
     private var isRunning = false
-
-    init() {
-        queue.name = "WatchMotionSampler"
-        queue.qualityOfService = .utility
-    }
 
     func start() {
         guard !isRunning, motionManager.isDeviceMotionAvailable else { return }
         accumulator = EvidenceDeviceMotionWindowAccumulator(windowSeconds: 10)
         motionManager.deviceMotionUpdateInterval = 1
         isRunning = true
-        motionManager.startDeviceMotionUpdates(to: queue) { [weak self] motion, error in
+        motionManager.startDeviceMotionUpdates(to: .main) { [weak self] motion, error in
             guard error == nil, let motion else { return }
             let sample = EvidenceDeviceMotionSample(
                 elapsedRealtimeNanos: Int64((ProcessInfo.processInfo.systemUptime * 1_000_000_000).rounded()),
@@ -858,11 +844,9 @@ final class WatchMotionSampler {
                 rotationRateYRadps: motion.rotationRate.y,
                 rotationRateZRadps: motion.rotationRate.z
             )
-            Task { @MainActor [weak self] in
-                guard let self, self.isRunning else { return }
-                if let window = self.accumulator.append(sample) {
-                    self.onWindow?(window)
-                }
+            guard let self, self.isRunning else { return }
+            if let window = self.accumulator.append(sample) {
+                self.onWindow?(window)
             }
         }
     }
