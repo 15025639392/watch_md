@@ -15,8 +15,8 @@ Slice 1：路线导入与数据模型。
 5. 本地路线 JSON 落盘，供后续 WatchConnectivity 可靠同步前先保存。
 6. iPhone/Watch SwiftUI app 源码骨架。
 7. iPhone 路线列表已接入 GPX 文件选择器，也支持系统分享或“用 Watch Hiking 打开”GPX；导入后保存到本地路线库并打开详情页。
-8. iPhone 首屏已接入定位状态卡：支持真实 Core Location When In Use / Always 定位、持续高精度定位开关和朝向显示。
-9. iPhone 路线详情地图会显示接近 iOS 地图蓝点风格的当前定位标记，并随定位点位置和朝向更新。
+8. iPhone 首屏不再展示定位状态卡，保持路线列表和 Watch 中枢入口优先。
+9. iPhone 路线详情地图保留当前位置标记能力：若定位模块已有位置，会显示接近 iOS 地图蓝点风格的当前定位标记，并随定位点位置和朝向更新。
 
 Slice 2 已开始并完成核心可测试闭环：
 
@@ -110,13 +110,22 @@ xcodebuild -project WatchHikingApp.xcodeproj \
   build
 ```
 
-iOS 真机安装待完成签名配置：当前本机能看到已配对 iPhone 和 Apple Development 证书，但 Xcode CLI 报告没有登录 Team `YTQ3SFT962` 的账号，也没有匹配 `com.watchmd.hiking.iphone` 的 iOS Development provisioning profile。因此真机安装需要先在 Xcode Accounts 登录对应 Apple Developer 账号，或安装匹配 bundle id 和设备 UDID 的 provisioning profile；之后可用 `-allowProvisioningUpdates` 重新运行真机构建。
+Apple Watch 真机在 Xcode 中可见的前置链路：
+
+1. iPhone 先在 Xcode `Window > Devices and Simulators > Devices` 中可见，并完成 Trust / Pairing。
+2. Apple Watch 已在该 iPhone 的 Watch App 中完成配对，iPhone 和 Watch 都保持解锁。
+3. iPhone 和 Apple Watch 都已开启 Developer Mode。Watch 侧也必须开启，不能只开 iPhone。
+4. 在 Xcode 的 `Devices and Simulators` 中选择 iPhone，确认右侧 `Paired Watches` 区域能看到目标 Apple Watch。
+5. 如果 iPhone 可见但 Watch 不在 `Paired Watches`，先检查 Watch 配对状态、Watch Developer Mode、两端解锁、蓝牙、同一 Wi-Fi；Apple 官方文档提醒 Apple Watch Series 5 或更早机型尤其需要 Bonjour 兼容 Wi-Fi。
+6. 如果 Watch 已在 `Paired Watches` 中出现但不能运行，优先按 Xcode 右侧黄色提示处理；这通常已经从“设备发现问题”进入 Developer Mode、系统版本、签名、设备支持文件或工程配置问题。
+
+iOS / watchOS 真机安装待完成签名配置：当前本机能看到已配对 iPhone 和 Apple Development 证书，但 Xcode CLI 报告没有登录 Team `YTQ3SFT962` 的账号，也没有匹配 `com.watchmd.hiking.iphone` 的 iOS Development provisioning profile。因此真机安装需要先在 Xcode Accounts 登录对应 Apple Developer 账号，或安装匹配 bundle id 和设备 UDID 的 provisioning profile；之后可用 `-allowProvisioningUpdates` 重新运行真机构建。Watch 真机若已经在 `Paired Watches` 中可见，后续失败应优先按签名、Bundle ID、iPhone-Watch companion 嵌入和 Capabilities 排查。
 
 手动验证：
 
 1. 运行测试确认 GPX fixture 可导入并生成路线摘要。
 2. 检查 `Apps/iPhone/iPhoneApp.swift`：路线列表从 mock 远端目录加载，也可通过文件选择器、系统分享或“用 Watch Hiking 打开”导入 GPX；点击后展示 MapKit 路线详情、路线统计和同步入口。
-3. 在 iPhone 首屏定位卡点击开始可请求 iPhone When In Use 定位；打开“持续高精度定位”后会请求 Always 权限并启用后台 location 模式，以便 App 退到后台后继续接收位置更新。该卡仅用于 iPhone 当前定位状态展示和调试，不代表 iPhone 已成为徒步记录入口。
+3. iPhone 首屏不提供定位调试卡；路线详情中的当前位置只作为路线预览辅助，不代表 iPhone 已成为徒步记录入口。
 4. 在路线详情页点击“同步到 Watch”，当前会通过 WatchConnectivity 发送路线清单和路线数据；两端可达时走实时消息，离线或实时发送失败时回退到可靠队列。收到 Watch 安装 ACK 后关闭详情或返回列表，可在“已同步”tab 看到该路线。
 5. 检查 `Apps/Watch/WatchApp.swift`：Watch 端已显示地图首页和会话控制面板，可触发开始、暂停、继续、二次确认结束；会话进行中会通过 Core Location 写入真实定位点，并通过 CMAltimeter 和低频 CMMotionManager 窗口化生成本地 evidence JSONL；通过 HKWorkoutSession 记录户外徒步 workout，并展示心率、活动能量和运动距离；有路线时底部显示路线关系，无路线时进入自由记录模式。
 

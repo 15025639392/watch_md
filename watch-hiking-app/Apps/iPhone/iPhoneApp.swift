@@ -114,7 +114,6 @@ final class RouteListViewModel: ObservableObject {
 struct RouteListView: View {
     @StateObject var viewModel: RouteListViewModel
     @EnvironmentObject private var sessionSyncService: iPhoneSessionSyncService
-    @EnvironmentObject private var locationViewModel: iPhoneLocationViewModel
     @State private var searchText = ""
     @State private var isImportingGPX = false
     @State private var selectedFilter: RouteFilter = .remote
@@ -137,8 +136,6 @@ struct RouteListView: View {
                             )
                         }
                         .buttonStyle(.plain)
-
-                        iPhoneLocationStatusCard(viewModel: locationViewModel)
 
                         RouteFilterBar(selection: $selectedFilter)
 
