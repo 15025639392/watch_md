@@ -878,7 +878,7 @@ final class WatchMotionSampler {
 }
 
 @MainActor
-final class WatchLocationSampler: NSObject, @MainActor CLLocationManagerDelegate {
+final class WatchLocationSampler: NSObject, CLLocationManagerDelegate {
     var onLocation: ((CLLocation) -> Void)?
     var onStatusChange: ((String) -> Void)?
 
@@ -913,27 +913,36 @@ final class WatchLocationSampler: NSObject, @MainActor CLLocationManagerDelegate
         onStatusChange?("定位已停止")
     }
 
-    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        switch manager.authorizationStatus {
-        case .authorizedWhenInUse, .authorizedAlways:
-            onStatusChange?("定位已授权")
-            manager.startUpdatingLocation()
-        case .denied, .restricted:
-            onStatusChange?("定位未授权")
-        case .notDetermined:
-            onStatusChange?("等待定位授权")
-        @unknown default:
-            onStatusChange?("定位状态未知")
+    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        let status = manager.authorizationStatus
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            switch status {
+            case .authorizedWhenInUse, .authorizedAlways:
+                onStatusChange?("定位已授权")
+                self.manager.startUpdatingLocation()
+            case .denied, .restricted:
+                onStatusChange?("定位未授权")
+            case .notDetermined:
+                onStatusChange?("等待定位授权")
+            @unknown default:
+                onStatusChange?("定位状态未知")
+            }
         }
     }
 
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last, location.horizontalAccuracy >= 0 else { return }
-        onLocation?(location)
+        Task { @MainActor [weak self] in
+            self?.onLocation?(location)
+        }
     }
 
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        onStatusChange?("定位失败：\(error.localizedDescription)")
+    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        let message = error.localizedDescription
+        Task { @MainActor [weak self] in
+            self?.onStatusChange?("定位失败：\(message)")
+        }
     }
 }
 
